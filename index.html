@@ -1025,14 +1025,26 @@
             return deck;
         }
 
+        function getCardFaceColors() {
+            if (currentTheme.cardFace === 'white') {
+                return { bg: '#ffffff', border: '#cccccc', red: '#cc0000', black: '#000000' };
+            } else {
+                return { bg: '#1a1a1a', border: '#444444', red: '#ff4444', black: '#ffffff' };
+            }
+        }
+
         function getCardClasses(card, isFaceDown) {
             const classes = ['card'];
             if (isFaceDown) {
                 classes.push('face-down', 'back-' + currentTheme.cardBack);
-            } else {
-                classes.push('face-' + currentTheme.cardFace, card.color);
             }
             return classes.join(' ');
+        }
+
+        function getCardStyle(card) {
+            const colors = getCardFaceColors();
+            const textColor = card.color === 'red' ? colors.red : colors.black;
+            return `background: ${colors.bg}; border: 1px solid ${colors.border}; color: ${textColor};`;
         }
 
         function renderCardContent(card) {
@@ -1522,7 +1534,9 @@
                 div.onclick = () => handleFoundationClick(i);
 
                 if (top) {
-                    div.innerHTML = `<div class="foundation-card face-${currentTheme.cardFace} ${top.color}">
+                    const colors = getCardFaceColors();
+                    const textColor = top.color === 'red' ? colors.red : colors.black;
+                    div.innerHTML = `<div class="foundation-card" style="background: ${colors.bg}; color: ${textColor};">
                         <div class="card-corner top-left">
                             <span class="corner-value">${top.value}</span>
                             <span class="corner-suit">${top.suit}</span>
@@ -1560,6 +1574,7 @@
                     cardEl.style.zIndex = i;
 
                     if (!card.faceDown) {
+                        cardEl.style.cssText += getCardStyle(card);
                         cardEl.innerHTML = renderCardContent(card);
                     }
 
