@@ -547,11 +547,25 @@
         }
 
         /* Scoreboard */
+        .scoreboard-container {
+            max-height: 45vh;
+            overflow-y: auto;
+            margin: 10px 0;
+            border: 1px solid #444;
+            border-radius: 6px;
+        }
+
         .scoreboard-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.8rem;
-            margin-top: 10px;
+        }
+
+        .scoreboard-table thead {
+            position: sticky;
+            top: 0;
+            background: #2a2a2a;
+            z-index: 1;
         }
 
         .scoreboard-table th,
@@ -914,26 +928,28 @@
             });
 
             container.innerHTML = `
-                <table class="scoreboard-table">
-                    <thead>
-                        <tr>
-                            <th class="${scoreboardSort.column === 'date' ? 'sorted' : ''}" onclick="sortScoreboard('date')">Date</th>
-                            <th class="${scoreboardSort.column === 'moves' ? 'sorted' : ''}" onclick="sortScoreboard('moves')">Moves</th>
-                            <th class="${scoreboardSort.column === 'time' ? 'sorted' : ''}" onclick="sortScoreboard('time')">Time</th>
-                            <th class="${scoreboardSort.column === 'result' ? 'sorted' : ''}" onclick="sortScoreboard('result')">Result</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${sorted.slice(0, 20).map(game => `
-                            <tr class="${game.win ? 'win' : 'loss'}">
-                                <td>${formatDate(game.date)}</td>
-                                <td>${game.moves}</td>
-                                <td>${formatTime(game.time)}</td>
-                                <td>${game.win ? '✓ Win' : '✗ Loss'}</td>
+                <div class="scoreboard-container">
+                    <table class="scoreboard-table">
+                        <thead>
+                            <tr>
+                                <th class="${scoreboardSort.column === 'date' ? 'sorted' : ''}" onclick="sortScoreboard('date')">Date</th>
+                                <th class="${scoreboardSort.column === 'moves' ? 'sorted' : ''}" onclick="sortScoreboard('moves')">Moves</th>
+                                <th class="${scoreboardSort.column === 'time' ? 'sorted' : ''}" onclick="sortScoreboard('time')">Time</th>
+                                <th class="${scoreboardSort.column === 'result' ? 'sorted' : ''}" onclick="sortScoreboard('result')">Result</th>
                             </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            ${sorted.map(game => `
+                                <tr class="${game.win ? 'win' : 'loss'}">
+                                    <td>${formatDate(game.date)}</td>
+                                    <td>${game.moves}</td>
+                                    <td>${formatTime(game.time)}</td>
+                                    <td>${game.win ? '✓ Win' : '✗ Loss'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
             `;
         }
 
