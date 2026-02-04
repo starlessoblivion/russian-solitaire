@@ -497,6 +497,20 @@
                     <span class="toggle-slider"></span>
                 </label>
             </div>
+            <div class="setting-row">
+                <span>Auto-Move Aces</span>
+                <label class="toggle">
+                    <input type="checkbox" id="autoMoveAces" onchange="saveSettings()">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="setting-row">
+                <span>Auto-Move to Foundation</span>
+                <label class="toggle">
+                    <input type="checkbox" id="autoMoveFoundation" onchange="saveSettings()">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
             <button class="modal-btn secondary" onclick="toggleSettings(); toggleThemes();">🎨 Customize Theme</button>
         </div>
     </div>
@@ -540,6 +554,8 @@
         let tableau = [[], [], [], [], [], [], []];
         let selected = null;
         let oneTapMove = false;
+        let autoMoveAces = false;
+        let autoMoveFoundation = false;
         let moveHistory = [];
         let moveCount = 0;
 
@@ -582,7 +598,11 @@
             if (saved) {
                 const settings = JSON.parse(saved);
                 oneTapMove = settings.oneTapMove || false;
+                autoMoveAces = settings.autoMoveAces || false;
+                autoMoveFoundation = settings.autoMoveFoundation || false;
                 document.getElementById('oneTapMove').checked = oneTapMove;
+                document.getElementById('autoMoveAces').checked = autoMoveAces;
+                document.getElementById('autoMoveFoundation').checked = autoMoveFoundation;
             }
 
             const savedTheme = localStorage.getItem('russianSolitaireTheme');
@@ -594,7 +614,13 @@
 
         function saveSettings() {
             oneTapMove = document.getElementById('oneTapMove').checked;
-            localStorage.setItem('russianSolitaireSettings', JSON.stringify({ oneTapMove }));
+            autoMoveAces = document.getElementById('autoMoveAces').checked;
+            autoMoveFoundation = document.getElementById('autoMoveFoundation').checked;
+            localStorage.setItem('russianSolitaireSettings', JSON.stringify({
+                oneTapMove,
+                autoMoveAces,
+                autoMoveFoundation
+            }));
         }
 
         function saveTheme() {
@@ -835,6 +861,7 @@
 
             hideGameOver();
             render();
+            setTimeout(() => tryAutoMoveToFoundation(), 100);
         }
 
         function findValidMoves() {
@@ -869,6 +896,8 @@
                         if (targetTop && targetTop.faceDown) continue;
 
                         if (!targetTop && card.value === 'K') {
+                            // Skip if King is already at bottom of its column (pointless move)
+                            if (i === 0) continue;
                             moves.push({ type: 'tableau', cardCol: col, cardIndex: i, targetCol });
                         }
                         if (targetTop && card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1) {
@@ -902,6 +931,66 @@
             if (total === 52) {
                 showGameOver(true);
             }
+        }
+
+        function tryAutoMoveToFoundation() {
+            if (!autoMoveAces && !autoMoveFoundation) return false;
+
+            let moved = false;
+
+            for (let col = 0; col < 7; col++) {
+                if (tableau[col].length === 0) continue;
+
+                const topCard = tableau[col][tableau[col].length - 1];
+                if (topCard.faceDown) continue;
+
+                // Check if this card can go to foundation
+                for (let f = 0; f < 4; f++) {
+                    const foundationTop = foundations[f][foundations[f].length - 1];
+
+                    // Ace to empty foundation
+                    if (!foundationTop && topCard.value === 'A' && suits[f] === topCard.suit) {
+                        if (autoMoveAces) {
+                            foundations[f].push(topCard);
+                            tableau[col].pop();
+                            saveMove({
+                                type: 'foundation',
+                                fromCol: col,
+                                fromFoundation: f,
+                                card: topCard
+                            });
+                            moved = true;
+                            break;
+                        }
+                    }
+                    // Next card to foundation
+                    else if (foundationTop && topCard.suit === foundationTop.suit && topCard.valueNum === foundationTop.valueNum + 1) {
+                        if (autoMoveFoundation) {
+                            foundations[f].push(topCard);
+                            tableau[col].pop();
+                            saveMove({
+                                type: 'foundation',
+                                fromCol: col,
+                                fromFoundation: f,
+                                card: topCard
+                            });
+                            moved = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (moved) break;
+            }
+
+            if (moved) {
+                checkGameState();
+                render();
+                // Try again recursively for chain moves
+                setTimeout(() => tryAutoMoveToFoundation(), 150);
+            }
+
+            return moved;
         }
 
         function checkLoseCondition() {
@@ -1021,6 +1110,7 @@
                     card.faceDown = false;
                     saveMove({ type: 'flip', col, index });
                     render();
+                    setTimeout(() => tryAutoMoveToFoundation(), 100);
                 }
                 return;
             }
@@ -1031,6 +1121,7 @@
                 if (validMove) {
                     executeMove(col, index, validMove);
                     render();
+                    setTimeout(() => tryAutoMoveToFoundation(), 100);
                 }
                 return;
             }
@@ -1051,6 +1142,7 @@
                     if (isValidFoundation) {
                         executeMove(col, index, { type: 'foundation', index: f });
                         render();
+                        setTimeout(() => tryAutoMoveToFoundation(), 100);
                         return;
                     }
                 }
@@ -1071,6 +1163,7 @@
                     if (isValidTableau) {
                         executeMove(col, index, { type: 'tableau', index: targetCol });
                         render();
+                        setTimeout(() => tryAutoMoveToFoundation(), 100);
                         return;
                     }
                 }
@@ -1114,6 +1207,7 @@
                     selected = null;
                     checkGameState();
                     render();
+                    setTimeout(() => tryAutoMoveToFoundation(), 100);
                     return;
                 }
             } else {
@@ -1129,6 +1223,7 @@
                     selected = null;
                     checkGameState();
                     render();
+                    setTimeout(() => tryAutoMoveToFoundation(), 100);
                     return;
                 }
             }
@@ -1157,6 +1252,7 @@
                 return;
             }
 
+            let didMove = false;
             if (!targetTop) {
                 if (card.value === 'K') {
                     const cards = tableau[selected.col].splice(selected.index);
@@ -1170,6 +1266,7 @@
                         wasFaceDown: wasFaceDown
                     });
                     tableau[targetCol].push(...cards);
+                    didMove = true;
                 }
             } else {
                 if (card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1) {
@@ -1184,11 +1281,15 @@
                         wasFaceDown: wasFaceDown
                     });
                     tableau[targetCol].push(...cards);
+                    didMove = true;
                 }
             }
 
             selected = null;
             render();
+            if (didMove) {
+                setTimeout(() => tryAutoMoveToFoundation(), 100);
+            }
         }
 
         function render() {
