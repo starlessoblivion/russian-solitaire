@@ -82,21 +82,37 @@
         .foundation {
             width: 48px;
             aspect-ratio: 5/7;
-            background: rgba(255,255,255,0.15);
-            border: 2px dashed rgba(255,255,255,0.5);
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px dashed rgba(255, 255, 255, 0.2);
             border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.9rem;
-            color: rgba(255,255,255,0.7);
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.3);
             cursor: pointer;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
         }
+
+        /* Foundation adapts to background themes */
+        body.bg-classic-green .foundation:not(.has-card) { background: rgba(26, 95, 60, 0.5); }
+        body.bg-forest .foundation:not(.has-card) { background: rgba(13, 51, 32, 0.5); }
+        body.bg-navy .foundation:not(.has-card) { background: rgba(26, 42, 74, 0.5); }
+        body.bg-burgundy .foundation:not(.has-card) { background: rgba(74, 26, 42, 0.5); }
+        body.bg-charcoal .foundation:not(.has-card) { background: rgba(42, 42, 42, 0.5); }
+        body.bg-purple .foundation:not(.has-card) { background: rgba(58, 26, 74, 0.5); }
+        body.bg-teal .foundation:not(.has-card) { background: rgba(26, 74, 74, 0.5); }
+        body.bg-wood .foundation:not(.has-card) { background: rgba(61, 43, 31, 0.5); }
 
         .foundation.has-card {
             border: none;
             padding: 0;
             overflow: hidden;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            background: transparent;
         }
 
         .foundation.drop-target {
@@ -987,7 +1003,7 @@
         let gameStartTime = null;
         let gameEnded = false;
         let scoreboard = [];
-        let scoreboardSort = { column: 'date', ascending: false };
+        let scoreboardSort = { column: 'score', ascending: false };
 
         // Drag and drop state
         let isDragging = false;
@@ -1233,6 +1249,7 @@
                     <table class="scoreboard-table">
                         <thead>
                             <tr>
+                                <th class="${scoreboardSort.column === 'score' ? 'sorted' : ''}" onclick="sortScoreboard('score')">Score</th>
                                 <th class="${scoreboardSort.column === 'date' ? 'sorted' : ''}" onclick="sortScoreboard('date')">Date</th>
                                 <th class="${scoreboardSort.column === 'moves' ? 'sorted' : ''}" onclick="sortScoreboard('moves')">Moves</th>
                                 <th class="${scoreboardSort.column === 'time' ? 'sorted' : ''}" onclick="sortScoreboard('time')">Time</th>
@@ -1242,10 +1259,11 @@
                         <tbody>
                             ${sorted.map(game => `
                                 <tr class="${game.win ? 'win' : 'loss'}${game.tutorial ? ' tutorial' : ''}">
+                                    <td><strong>${game.score || 0}</strong></td>
                                     <td>${formatDate(game.date)}</td>
                                     <td>${game.moves}</td>
                                     <td>${formatTime(game.time)}</td>
-                                    <td>${game.win ? 'Win' : 'Loss'}${game.tutorial ? ' <small>(Tutorial)</small>' : ''}</td>
+                                    <td>${game.win ? 'Win' : 'Loss'}${game.tutorial ? ' <small>(T)</small>' : ''}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -1266,12 +1284,14 @@
             if (gameEnded) return;
             gameEnded = true;
             const timeElapsed = Math.floor((Date.now() - gameStartTime) / 1000);
+            const score = calculateScore();
             scoreboard.push({
                 date: Date.now(),
                 moves: moveCount,
                 time: timeElapsed,
                 win: win,
-                tutorial: tutorialMode
+                tutorial: tutorialMode,
+                score: score
             });
             saveScoreboard();
         }
@@ -1849,11 +1869,12 @@
                     const isTopCard = (i === topIndex);
                     const stackSize = tableau[col].length - i;
 
-                    // Check for aces (top card only)
+                    // Check for aces (top card only) - can go in any empty foundation
                     if (isTopCard && card.value === 'A') {
                         for (let f = 0; f < 4; f++) {
-                            if (foundations[f].length === 0 && card.suitIndex === f) {
+                            if (foundations[f].length === 0) {
                                 analysis.aces.push({ col, index: i, card, targetFoundation: f });
+                                break; // Only suggest first available foundation
                             }
                         }
                     }
@@ -1994,7 +2015,7 @@
                     if (isTopCard) {
                         for (let f = 0; f < 4; f++) {
                             const top = foundations[f][foundations[f].length - 1];
-                            if (!top && card.value === 'A' && card.suitIndex === f) {
+                            if (!top && card.value === 'A') {
                                 moves.unshift({ type: 'foundation', cardCol: col, cardIndex: i, foundation: f });
                             }
                             if (top && card.suit === top.suit && card.valueNum === top.valueNum + 1) {
@@ -2029,7 +2050,7 @@
                 for (let f = 0; f < 4; f++) {
                     const foundationTop = foundations[f][foundations[f].length - 1];
 
-                    if (!foundationTop && topCard.value === 'A' && topCard.suitIndex === f) {
+                    if (!foundationTop && topCard.value === 'A') {
                         if (autoMoveAces) {
                             foundations[f].push(topCard);
                             tableau[col].pop();
@@ -2070,16 +2091,30 @@
             }
         }
 
+        function calculateScore() {
+            // Score formula:
+            // +10 points per card in foundation (max 520)
+            // -1 point per move (efficiency bonus for fewer moves)
+            // +500 bonus for winning (all 52 cards in foundation)
+            const cardsInFoundation = foundations.reduce((sum, f) => sum + f.length, 0);
+            const baseScore = cardsInFoundation * 10;
+            const movePenalty = moveCount;
+            const winBonus = cardsInFoundation === 52 ? 500 : 0;
+            return Math.max(0, baseScore - movePenalty + winBonus);
+        }
+
         function showGameOver(isWin) {
             const modal = document.getElementById('gameOverModal');
             const content = document.getElementById('gameOverContent');
             const title = document.getElementById('gameOverTitle');
             const movesText = document.getElementById('gameOverMoves');
             const timeElapsed = Math.floor((Date.now() - gameStartTime) / 1000);
+            const score = calculateScore();
+            const cardsInFoundation = foundations.reduce((sum, f) => sum + f.length, 0);
 
             content.className = 'modal game-over-modal ' + (isWin ? 'win' : 'lose');
             title.textContent = isWin ? 'You Win!' : 'No more moves';
-            movesText.innerHTML = `Moves: ${moveCount}<br>Time: ${formatTime(timeElapsed)}`;
+            movesText.innerHTML = `Score: <strong>${score}</strong><br>Cards: ${cardsInFoundation}/52 | Moves: ${moveCount} | Time: ${formatTime(timeElapsed)}`;
             modal.classList.add('show');
         }
 
@@ -2088,9 +2123,10 @@
         }
 
         function findValidMove(card, isTopCard) {
+            // Aces can go in any empty foundation
             if (isTopCard && card.value === 'A') {
                 for (let f = 0; f < 4; f++) {
-                    if (foundations[f].length === 0 && card.suitIndex === f) {
+                    if (foundations[f].length === 0) {
                         return { type: 'foundation', index: f };
                     }
                 }
@@ -2112,7 +2148,7 @@
             if (isTopCard) {
                 for (let f = 0; f < 4; f++) {
                     const top = foundations[f][foundations[f].length - 1];
-                    if (!top && card.value === 'A' && card.suitIndex === f) {
+                    if (!top && card.value === 'A') {
                         return { type: 'foundation', index: f };
                     }
                     if (top && card.suit === top.suit && card.valueNum === top.valueNum + 1) {
@@ -2179,7 +2215,7 @@
             if (selected && selected.col === col && selected.index === index) {
                 for (let f = 0; f < 4; f++) {
                     const top = foundations[f][foundations[f].length - 1];
-                    const isValid = !top ? (card.value === 'A' && card.suitIndex === f) : (card.suit === top.suit && card.valueNum === top.valueNum + 1);
+                    const isValid = !top ? (card.value === 'A') : (card.suit === top.suit && card.valueNum === top.valueNum + 1);
                     if (isValid && isTopCard) {
                         executeMove(col, index, { type: 'foundation', index: f });
                         render();
@@ -2224,7 +2260,7 @@
             }
 
             const top = foundations[fIndex][foundations[fIndex].length - 1];
-            const isValid = !top ? (card.value === 'A' && card.suitIndex === fIndex) : (card.suit === top.suit && card.valueNum === top.valueNum + 1);
+            const isValid = !top ? (card.value === 'A') : (card.suit === top.suit && card.valueNum === top.valueNum + 1);
 
             if (isValid) {
                 foundations[fIndex].push(card);
@@ -2384,7 +2420,7 @@
                 document.querySelectorAll('.foundation').forEach((foundEl, f) => {
                     const top = foundations[f][foundations[f].length - 1];
                     const isValid = !top
-                        ? (card.value === 'A' && card.suitIndex === f)
+                        ? (card.value === 'A')
                         : (card.suit === top.suit && card.valueNum === top.valueNum + 1);
 
                     if (isValid) {
@@ -2523,7 +2559,7 @@
                     const foundationTop = foundations[f][foundations[f].length - 1];
                     let shouldMove = false;
 
-                    if (!foundationTop && topCard.value === 'A' && topCard.suitIndex === f && autoMoveAces) {
+                    if (!foundationTop && topCard.value === 'A' && autoMoveAces) {
                         shouldMove = true;
                     } else if (foundationTop && topCard.suit === foundationTop.suit && topCard.valueNum === foundationTop.valueNum + 1 && autoMoveFoundation) {
                         shouldMove = true;
@@ -2592,7 +2628,7 @@
                         </div>
                     </div>`;
                 } else {
-                    div.innerHTML = 'A ' + suitChars[i];
+                    div.innerHTML = 'A';
                 }
                 foundationsEl.appendChild(div);
             }
