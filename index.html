@@ -2827,15 +2827,22 @@
         }
 
         function findValidMove(card, isTopCard) {
-            // Aces can go in any empty foundation
-            if (isTopCard && card.value === 'A') {
+            // Priority 1: Check foundation moves first (only for top cards)
+            if (isTopCard) {
                 for (let f = 0; f < 4; f++) {
-                    if (foundations[f].length === 0) {
+                    const top = foundations[f][foundations[f].length - 1];
+                    // Ace to empty foundation
+                    if (!top && card.value === 'A') {
+                        return { type: 'foundation', index: f };
+                    }
+                    // Card builds on foundation (same suit, next value)
+                    if (top && card.suit === top.suit && card.valueNum === top.valueNum + 1) {
                         return { type: 'foundation', index: f };
                     }
                 }
             }
 
+            // Priority 2: Tableau moves (stacking or King to empty column)
             for (let col = 0; col < 7; col++) {
                 const targetTop = tableau[col][tableau[col].length - 1];
                 if (targetTop && targetTop.faceDown) continue;
@@ -2845,18 +2852,6 @@
                 } else {
                     if (card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1) {
                         return { type: 'tableau', index: col };
-                    }
-                }
-            }
-
-            if (isTopCard) {
-                for (let f = 0; f < 4; f++) {
-                    const top = foundations[f][foundations[f].length - 1];
-                    if (!top && card.value === 'A') {
-                        return { type: 'foundation', index: f };
-                    }
-                    if (top && card.suit === top.suit && card.valueNum === top.valueNum + 1) {
-                        return { type: 'foundation', index: f };
                     }
                 }
             }
