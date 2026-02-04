@@ -781,28 +781,45 @@
             color: #000;
         }
 
+        /* Blue highlight for selected/hint card (source) */
         .card.tutorial-highlight {
-            box-shadow: 0 0 0 3px #ffd700, 0 0 15px rgba(255, 215, 0, 0.7);
-            animation: tutorialPulse 1.2s infinite;
+            box-shadow: 0 0 0 3px #4a90d9, 0 0 15px rgba(74, 144, 217, 0.7);
+            animation: tutorialPulseBlue 1.2s infinite;
             z-index: 50 !important;
         }
 
-        @keyframes tutorialPulse {
+        @keyframes tutorialPulseBlue {
             0%, 100% {
-                box-shadow: 0 0 0 3px #ffd700, 0 0 15px rgba(255, 215, 0, 0.7);
+                box-shadow: 0 0 0 3px #4a90d9, 0 0 15px rgba(74, 144, 217, 0.7);
             }
             50% {
-                box-shadow: 0 0 0 5px #ffd700, 0 0 25px rgba(255, 215, 0, 0.9);
+                box-shadow: 0 0 0 5px #4a90d9, 0 0 25px rgba(74, 144, 217, 0.9);
             }
+        }
+
+        /* Green highlight for destination (target card or foundation) */
+        .card.tutorial-target {
+            box-shadow: 0 0 0 3px #4CAF50, 0 0 15px rgba(76, 175, 80, 0.7);
+            animation: tutorialPulseGreen 1.2s infinite;
+            z-index: 49 !important;
         }
 
         .foundation.tutorial-highlight {
-            box-shadow: 0 0 0 3px #ffd700, 0 0 15px rgba(255, 215, 0, 0.7);
-            animation: tutorialPulse 1.2s infinite;
+            box-shadow: 0 0 0 3px #4CAF50, 0 0 15px rgba(76, 175, 80, 0.7);
+            animation: tutorialPulseGreen 1.2s infinite;
+        }
+
+        @keyframes tutorialPulseGreen {
+            0%, 100% {
+                box-shadow: 0 0 0 3px #4CAF50, 0 0 15px rgba(76, 175, 80, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 5px #4CAF50, 0 0 25px rgba(76, 175, 80, 0.9);
+            }
         }
 
         .column.tutorial-target {
-            background: rgba(255, 215, 0, 0.15);
+            background: rgba(76, 175, 80, 0.15);
         }
     </style>
 </head>
@@ -941,7 +958,7 @@
         // Tutorial state
         let tutorialMode = false;
         let tutorialStep = 0;
-        let tutorialHighlights = { cards: [], foundations: [], columns: [] };
+        let tutorialHighlights = { cards: [], foundations: [], columns: [], targetCards: [] };
 
         // Dynamic tutorial help messages
         const tutorialMessages = {
@@ -1590,7 +1607,7 @@
             const nextBtn = document.getElementById('tutorialNextBtn');
 
             // Reset highlights
-            tutorialHighlights = { cards: [], foundations: [], columns: [] };
+            tutorialHighlights = { cards: [], foundations: [], columns: [], targetCards: [] };
 
             // Check if game is won
             const totalInFoundations = foundations.reduce((sum, f) => sum + f.length, 0);
@@ -1647,7 +1664,7 @@
                 titleEl.textContent = tutorialMessages.king.title;
                 textEl.textContent = tutorialMessages.king.text;
                 tutorialHighlights.cards.push({ col: move.col, index: move.index });
-                tutorialHighlights.columns.push(move.targetCol);
+                tutorialHighlights.columns.push(move.targetCol); // Empty column highlight
                 nextBtn.style.display = 'none';
             } else if (analysis.tableauStacks.length > 0) {
                 // Stack moves (moving multiple cards)
@@ -1657,7 +1674,7 @@
                 const stackSize = tableau[move.col].length - move.index;
                 textEl.textContent = `Move ${stackSize} cards starting with ${move.card.value}${move.card.suit} onto the ${move.targetCard.value}${move.targetCard.suit}.`;
                 tutorialHighlights.cards.push({ col: move.col, index: move.index });
-                tutorialHighlights.columns.push(move.targetCol);
+                tutorialHighlights.targetCards.push({ col: move.targetCol, index: move.targetIndex });
                 nextBtn.style.display = 'none';
             } else if (analysis.tableau.length > 0) {
                 // Single card tableau moves
@@ -1666,7 +1683,7 @@
                 titleEl.textContent = tutorialMessages.tableau.title;
                 textEl.textContent = `Move the ${move.card.value}${move.card.suit} onto the ${move.targetCard.value}${move.targetCard.suit}.`;
                 tutorialHighlights.cards.push({ col: move.col, index: move.index });
-                tutorialHighlights.columns.push(move.targetCol);
+                tutorialHighlights.targetCards.push({ col: move.targetCol, index: move.targetIndex });
                 nextBtn.style.display = 'none';
             } else {
                 // No moves available
@@ -1742,10 +1759,11 @@
 
                         // Card onto another card
                         if (targetTop && !targetTop.faceDown && card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1) {
+                            const targetIndex = tableau[targetCol].length - 1;
                             if (stackSize > 1) {
-                                analysis.tableauStacks.push({ col, index: i, card, targetCol, targetCard: targetTop });
+                                analysis.tableauStacks.push({ col, index: i, card, targetCol, targetIndex, targetCard: targetTop });
                             } else {
-                                analysis.tableau.push({ col, index: i, card, targetCol, targetCard: targetTop });
+                                analysis.tableau.push({ col, index: i, card, targetCol, targetIndex, targetCard: targetTop });
                             }
                         }
                     }
@@ -1770,7 +1788,7 @@
         function endTutorial() {
             tutorialMode = false;
             tutorialStep = 0;
-            tutorialHighlights = { cards: [], foundations: [], columns: [] };
+            tutorialHighlights = { cards: [], foundations: [], columns: [], targetCards: [] };
             document.getElementById('tutorialDialogue').classList.remove('show');
             // Deal a new regular hand
             newGameWithoutEndingTutorial();
@@ -2368,6 +2386,8 @@
 
         // Animated auto-move to foundation
         function tryAutoMoveToFoundationAnimated() {
+            // Disable auto-moves during tutorial
+            if (tutorialMode) return false;
             if (!autoMoveAces && !autoMoveFoundation) return false;
 
             let moved = false;
@@ -2488,11 +2508,15 @@
                         cardEl.classList.add(hintActive ? 'hint-highlight' : 'selected');
                     }
 
-                    // Tutorial highlight for specific cards
+                    // Tutorial highlight for specific cards (blue = source, green = target)
                     if (tutorialMode) {
-                        const isHighlighted = tutorialHighlights.cards.some(h => h.col === col && h.index === i);
-                        if (isHighlighted) {
+                        const isSourceCard = tutorialHighlights.cards.some(h => h.col === col && h.index === i);
+                        const isTargetCard = tutorialHighlights.targetCards.some(h => h.col === col && h.index === i);
+                        if (isSourceCard) {
                             cardEl.classList.add('tutorial-highlight');
+                        }
+                        if (isTargetCard) {
+                            cardEl.classList.add('tutorial-target');
                         }
                     }
 
