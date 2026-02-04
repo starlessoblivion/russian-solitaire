@@ -952,6 +952,12 @@
                 nextButton: true
             },
             {
+                title: "How to Move Cards",
+                text: "You can move cards 3 ways: (1) Drag and drop, (2) Tap a card then tap where to move it, or (3) Enable 'One Tap Move' in settings to auto-move with a single tap.",
+                action: "info",
+                nextButton: true
+            },
+            {
                 title: "Flip Face-Down Cards",
                 text: "When a face-down card is on top of a column, tap it to flip it face-up. Try flipping the highlighted card now!",
                 action: "flip",
@@ -960,7 +966,7 @@
             },
             {
                 title: "Move Aces to Foundation",
-                text: "Aces are the foundation of each suit pile. Tap the Ace twice to move it - once to select, once to confirm. Or tap the Ace, then tap the foundation.",
+                text: "Aces start each foundation pile. Drag the Ace to the foundation, OR tap it twice, OR tap it then tap the foundation above.",
                 action: "ace",
                 highlightCol: 0,
                 highlightTop: true,
@@ -968,7 +974,7 @@
             },
             {
                 title: "Build on Foundations",
-                text: "After an Ace, add cards of the SAME SUIT in ascending order (2, 3, 4...). Move the 2 of Spades to the foundation!",
+                text: "After an Ace, add cards of the SAME SUIT in ascending order (2, 3, 4...). Move the 2 of Spades to the foundation using any method!",
                 action: "foundation",
                 highlightCol: 1,
                 highlightTop: true,
@@ -976,7 +982,7 @@
             },
             {
                 title: "Move Cards Between Columns",
-                text: "In the tableau, you can move cards onto another card of the SAME SUIT that is exactly ONE VALUE HIGHER. Move the 4 onto the 5!",
+                text: "In the tableau, move cards onto another card of the SAME SUIT that is exactly ONE VALUE HIGHER. Drag, double-tap, or tap-tap to move the 4 onto the 5!",
                 action: "tableau",
                 highlightCol: 2,
                 highlightTop: true,
@@ -998,7 +1004,7 @@
             },
             {
                 title: "Keep Playing!",
-                text: "Continue moving cards to build the foundations. The tutorial hand is designed to be winnable. Use the Hint button if you get stuck!",
+                text: "Continue moving cards to build the foundations. This hand is winnable! Use the Hint button if stuck. Press 'Skip Tutorial' to start a regular game.",
                 action: "freeplay",
                 nextButton: true
             }
@@ -1552,7 +1558,40 @@
             tutorialStep = 0;
             tutorialHighlights = { cards: [], foundations: [], columns: [] };
             document.getElementById('tutorialDialogue').classList.remove('show');
+            // Deal a new regular hand
+            newGameWithoutEndingTutorial();
+        }
+
+        function newGameWithoutEndingTutorial() {
+            const deck = createDeck();
+            foundations = [[], [], [], []];
+            tableau = [[], [], [], [], [], [], []];
+            selected = null;
+            hintActive = false;
+            moveHistory = [];
+            moveCount = 0;
+            gameStartTime = Date.now();
+            gameEnded = false;
+
+            const totals = [1, 6, 7, 8, 9, 10, 11];
+            const faceUps = [1, 5, 5, 5, 5, 5, 5];
+            let cardIndex = 0;
+
+            for (let col = 0; col < 7; col++) {
+                const total = totals[col];
+                const faceUpCount = faceUps[col];
+                const faceDownCount = total - faceUpCount;
+
+                for (let i = 0; i < total; i++) {
+                    let card = deck[cardIndex++];
+                    card.faceDown = (i < faceDownCount);
+                    tableau[col].push(card);
+                }
+            }
+
+            hideGameOver();
             render();
+            setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
         }
 
         function checkTutorialProgress(action, col, index, targetCol, targetFoundation) {
@@ -1796,12 +1835,17 @@
                 return;
             }
 
-            if (oneTapMove && !tutorialMode) {
+            if (oneTapMove) {
                 const validMove = findValidMove(card, isTopCard);
                 if (validMove) {
+                    if (validMove.type === 'foundation') {
+                        checkTutorialProgress('foundation', col, index, null, validMove.index);
+                    } else {
+                        checkTutorialProgress('tableau', col, index, validMove.index, null);
+                    }
                     executeMove(col, index, validMove);
                     render();
-                    setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                    if (!tutorialMode) setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                 }
                 return;
             }
@@ -1874,7 +1918,7 @@
 
         function handleTableauClick(targetCol) {
             clearHint();
-            if (!selected || (oneTapMove && !tutorialMode)) return;
+            if (!selected || oneTapMove) return;
 
             if (selected.col === targetCol) {
                 selected = null;
