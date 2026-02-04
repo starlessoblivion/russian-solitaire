@@ -149,6 +149,16 @@
             transform: scale(1.03);
         }
         
+        .card.hint-highlight {
+            box-shadow: 0 0 0 3px #00ff00, 0 2px 6px rgba(0,255,0,0.5);
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
         .foundation-card {
             width: 100%;
             height: 100%;
@@ -203,9 +213,11 @@
             opacity: 0.9;
         }
         
-        .bottom-bar .undo-btn {
-            background: #4a9eff;
-            color: #fff;
+        .bottom-bar .icon-btn {
+            background: none;
+            font-size: 1.5rem;
+            padding: 8px 12px;
+            opacity: 0.9;
         }
         
         /* Settings Modal */
@@ -392,9 +404,10 @@
     
     <!-- Bottom Bar -->
     <div class="bottom-bar">
-        <button class="settings-btn" onclick="toggleSettings()">⚙️</button>
-        <button onclick="newGame()">New Game</button>
-        <button class="undo-btn" onclick="undo()">↩ Undo</button>
+        <button class="icon-btn settings-btn" onclick="toggleSettings()">⚙️</button>
+        <button onclick="newGame()">🎮</button>
+        <button class="icon-btn" onclick="showHint()">💡</button>
+        <button class="icon-btn" onclick="undo()">↩️</button>
     </div>
     
     <!-- Settings Modal -->
@@ -498,6 +511,38 @@
             moveCount--;
             selected = null;
             render();
+        }
+        
+        function showHint() {
+            const moves = findValidMoves();
+            
+            if (moves.length === 0) {
+                showGameOver(false);
+                return;
+            }
+            
+            // Pick a random valid move
+            const randomMove = moves[Math.floor(Math.random() * moves.length)];
+            
+            // Highlight the card
+            let targetCol, targetIndex;
+            
+            if (randomMove.type === 'flip') {
+                targetCol = randomMove.cardCol;
+                targetIndex = tableau[randomMove.cardCol].length - 1;
+            } else {
+                targetCol = randomMove.cardCol;
+                targetIndex = tableau[randomMove.cardCol].length - 1;
+            }
+            
+            selected = { col: targetCol, index: targetIndex };
+            render();
+            
+            // Clear highlight after 2 seconds
+            setTimeout(() => {
+                selected = null;
+                render();
+            }, 2000);
         }
         
         function calculateSpacing(cards) {
@@ -638,7 +683,7 @@
             const movesText = document.getElementById('gameOverMoves');
             
             content.className = 'modal game-over-modal ' + (isWin ? 'win' : 'lose');
-            title.textContent = isWin ? '🎉 You Win!' : '💀 You Lose';
+            title.textContent = isWin ? '🎉 You Win!' : '😔 No more valid moves';
             movesText.textContent = `Total moves: ${moveCount}`;
             
             modal.classList.add('show');
