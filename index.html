@@ -76,8 +76,8 @@
         }
 
         .foundation {
-            width: 38px;
-            height: 50px;
+            width: 36px;
+            aspect-ratio: 5/7;
             background: rgba(255,255,255,0.1);
             border: 2px dashed rgba(255,255,255,0.4);
             border-radius: 4px;
@@ -92,7 +92,8 @@
         .foundation.has-card {
             background: var(--card-face-bg);
             border: 1px solid var(--card-face-border);
-            padding: 2px;
+            padding: 0;
+            overflow: hidden;
         }
 
         .foundation.drop-target {
@@ -112,11 +113,11 @@
 
         .column {
             flex: 1;
-            max-width: 50px;
+            max-width: 48px;
             position: relative;
             cursor: pointer;
             border-radius: 4px;
-            overflow: hidden;
+            overflow: visible;
         }
 
         .column.drop-target {
@@ -125,21 +126,15 @@
 
         .card {
             width: 100%;
-            aspect-ratio: 2/3;
-            max-height: 45px;
+            aspect-ratio: 5/7;
             background: var(--card-face-bg);
-            border-radius: 3px;
+            border-radius: 4px;
             position: absolute;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.6rem;
-            font-weight: bold;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
             cursor: pointer;
             border: 1px solid var(--card-face-border);
             transition: background 0.2s ease, border-color 0.2s ease;
+            overflow: hidden;
         }
 
         .card.face-down {
@@ -155,14 +150,70 @@
         .card.red { color: var(--card-red); }
         .card.black { color: var(--card-black); }
 
-        .card .value-suit {
+        .card-inner {
+            width: 100%;
+            height: 100%;
+            position: relative;
             display: flex;
-            align-items: center;
-            gap: 1px;
+            flex-direction: column;
         }
 
-        .card .suit {
-            font-size: 0.55rem;
+        .card-corner {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1;
+            font-weight: bold;
+        }
+
+        .card-corner.top-left {
+            top: 2px;
+            left: 3px;
+        }
+
+        .card-corner.bottom-right {
+            bottom: 2px;
+            right: 3px;
+            transform: rotate(180deg);
+        }
+
+        .card-corner .corner-value {
+            font-size: 0.6rem;
+        }
+
+        .card-corner .corner-suit {
+            font-size: 0.5rem;
+            margin-top: -2px;
+        }
+
+        .card-center {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+
+        .card-pips {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+            padding: 12px 4px;
+            font-size: 0.6rem;
+        }
+
+        .pip-row {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+        }
+
+        .card-face-icon {
+            font-size: 1rem;
+            font-weight: bold;
         }
 
         .card.selected {
@@ -188,15 +239,43 @@
             border-radius: 2px;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.55rem;
-            font-weight: bold;
-            border: 1px solid #ddd;
+            position: relative;
         }
 
         .foundation-card.red { color: var(--card-red); }
         .foundation-card.black { color: var(--card-black); }
+
+        .foundation-card .card-corner {
+            position: absolute;
+        }
+
+        .foundation-card .card-corner.top-left {
+            top: 1px;
+            left: 2px;
+        }
+
+        .foundation-card .card-corner.bottom-right {
+            bottom: 1px;
+            right: 2px;
+            transform: rotate(180deg);
+        }
+
+        .foundation-card .card-corner .corner-value {
+            font-size: 0.5rem;
+        }
+
+        .foundation-card .card-corner .corner-suit {
+            font-size: 0.4rem;
+            margin-top: -1px;
+        }
+
+        .foundation-card .card-center {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
 
         /* Bottom Bar */
         .bottom-bar {
@@ -605,9 +684,9 @@
     <script>
         const suits = ['♠', '♥', '♦', '♣'];
         const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-        const CARD_HEIGHT = 45;
-        const MIN_FACE_DOWN_SPACING = 8;
-        const MIN_FACE_UP_SPACING = 12;
+        const CARD_HEIGHT = 70;
+        const MIN_FACE_DOWN_SPACING = 10;
+        const MIN_FACE_UP_SPACING = 18;
 
         let foundations = [[], [], [], []];
         let tableau = [[], [], [], [], [], [], []];
@@ -899,6 +978,27 @@
             return deck;
         }
 
+        function renderCardContent(card) {
+            const isFaceCard = ['J', 'Q', 'K'].includes(card.value);
+            const faceSymbols = { 'J': '♞', 'Q': '♛', 'K': '♚' };
+
+            return `
+                <div class="card-inner">
+                    <div class="card-corner top-left">
+                        <span class="corner-value">${card.value}</span>
+                        <span class="corner-suit">${card.suit}</span>
+                    </div>
+                    <div class="card-center">
+                        ${isFaceCard ? `<span class="card-face-icon">${faceSymbols[card.value]}</span>` : card.suit}
+                    </div>
+                    <div class="card-corner bottom-right">
+                        <span class="corner-value">${card.value}</span>
+                        <span class="corner-suit">${card.suit}</span>
+                    </div>
+                </div>
+            `;
+        }
+
         function saveMove(action) {
             // Track if cards were face-down before the move
             if (action.type === 'tableau' && action.cards) {
@@ -972,7 +1072,9 @@
             if (cards.length === 0) return [];
 
             const tableauEl = document.getElementById('tableau');
-            const availableHeight = tableauEl.clientHeight - CARD_HEIGHT; // Reserve space for last card
+            const columnWidth = 48; // max-width of column
+            const cardHeight = columnWidth * (7/5); // aspect-ratio 5/7
+            const availableHeight = tableauEl.clientHeight - cardHeight; // Reserve space for last card
 
             // Count face-down and face-up cards
             let faceDownCount = 0;
@@ -1006,8 +1108,8 @@
                 });
             }
 
-            // Calculate ideal space
-            const idealFaceUpSpacing = CARD_HEIGHT;
+            // Calculate ideal space (show about 1/3 of face-up cards)
+            const idealFaceUpSpacing = Math.min(cardHeight * 0.35, 28);
             const idealFaceUpTotal = Math.max(0, faceUpCount - 1) * idealFaceUpSpacing;
             const idealNeeded = minFaceDownTotal + idealFaceUpTotal;
 
@@ -1515,7 +1617,17 @@
                 div.onclick = () => handleFoundationClick(i);
 
                 if (top) {
-                    div.innerHTML = '<div class="foundation-card ' + top.color + '"><span class="value-suit">' + top.value + '<span class="suit">' + top.suit + '</span></span></div>';
+                    div.innerHTML = `<div class="foundation-card ${top.color}">
+                        <div class="card-corner top-left">
+                            <span class="corner-value">${top.value}</span>
+                            <span class="corner-suit">${top.suit}</span>
+                        </div>
+                        <div class="card-center">${top.suit}</div>
+                        <div class="card-corner bottom-right">
+                            <span class="corner-value">${top.value}</span>
+                            <span class="corner-suit">${top.suit}</span>
+                        </div>
+                    </div>`;
                 } else {
                     div.innerHTML = 'A ' + suits[i];
                 }
@@ -1544,7 +1656,7 @@
                     cardEl.style.zIndex = i;
 
                     if (!card.faceDown) {
-                        cardEl.innerHTML = '<span class="value-suit">' + card.value + '<span class="suit">' + card.suit + '</span></span>';
+                        cardEl.innerHTML = renderCardContent(card);
                     }
 
                     if (selected && selected.col === col && selected.index === i) {
