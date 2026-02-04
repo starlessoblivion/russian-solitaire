@@ -339,6 +339,23 @@
         /* Win/Lose Modal */
         .game-over-modal {
             text-align: center;
+            position: relative;
+        }
+        
+        .game-over-modal .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+        
+        .game-over-modal .close-modal:active {
+            opacity: 1;
         }
         
         .game-over-modal h2 {
@@ -398,6 +415,7 @@
     <!-- Game Over Modal -->
     <div class="modal-overlay" id="gameOverModal">
         <div class="modal game-over-modal" id="gameOverContent">
+            <button class="close-modal" onclick="hideGameOver()">×</button>
             <h2 id="gameOverTitle"></h2>
             <p class="moves-count" id="gameOverMoves"></p>
             <button class="modal-btn" onclick="newGame(); hideGameOver();">New Game</button>
