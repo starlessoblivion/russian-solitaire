@@ -612,6 +612,78 @@
             background: #555;
         }
 
+        .modal-btn.danger {
+            background: #c0392b;
+            color: #fff;
+        }
+
+        .modal-btn.danger:active {
+            background: #a93226;
+        }
+
+        .storage-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .storage-buttons .modal-btn {
+            flex: 1;
+            margin-top: 0;
+            padding: 12px 8px;
+            font-size: 0.95rem;
+        }
+
+        .resume-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: #fff;
+            padding: 16px;
+            z-index: 1001;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .resume-banner.show {
+            display: flex;
+        }
+
+        .resume-banner p {
+            margin: 0;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .resume-banner .resume-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .resume-banner button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .resume-banner .btn-resume {
+            background: #27ae60;
+            color: #fff;
+        }
+
+        .resume-banner .btn-new {
+            background: #7f8c8d;
+            color: #fff;
+        }
+
         .close-modal {
             position: absolute;
             top: 12px;
@@ -882,6 +954,15 @@
     </style>
 </head>
 <body class="bg-charcoal">
+    <!-- Resume Game Banner -->
+    <div class="resume-banner" id="resumeBanner">
+        <p>You have a saved game in progress. Would you like to continue?</p>
+        <div class="resume-buttons">
+            <button class="btn-resume" onclick="resumeGame()">Resume Game</button>
+            <button class="btn-new" onclick="dismissResume()">New Game</button>
+        </div>
+    </div>
+
     <div class="game-container">
         <div class="top-section">
             <div class="header">
@@ -930,6 +1011,13 @@
             </div>
             <button class="modal-btn secondary" onclick="toggleSettings(); toggleThemes();">Customize Theme</button>
             <button class="modal-btn" onclick="toggleSettings(); startTutorial();">How to Play</button>
+
+            <h3>Data Backup</h3>
+            <div class="storage-buttons">
+                <button class="modal-btn secondary" onclick="exportData()">Export</button>
+                <button class="modal-btn secondary" onclick="document.getElementById('importFile').click()">Import</button>
+            </div>
+            <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
         </div>
     </div>
 
@@ -1136,6 +1224,160 @@
 
         function saveScoreboard() {
             localStorage.setItem('russianSolitaireScoreboard', JSON.stringify(scoreboard));
+        }
+
+        // Game state persistence
+        function saveGameState() {
+            if (gameEnded) {
+                clearGameState();
+                return;
+            }
+            const state = {
+                tableau: tableau,
+                foundations: foundations,
+                moveHistory: moveHistory,
+                moveCount: moveCount,
+                gameStartTime: gameStartTime,
+                tutorialMode: tutorialMode,
+                tutorialStep: tutorialStep,
+                savedAt: Date.now()
+            };
+            localStorage.setItem('russianSolitaireGameState', JSON.stringify(state));
+        }
+
+        function loadGameState() {
+            const saved = localStorage.getItem('russianSolitaireGameState');
+            if (!saved) return null;
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function clearGameState() {
+            localStorage.removeItem('russianSolitaireGameState');
+        }
+
+        function hasSavedGame() {
+            const state = loadGameState();
+            return state !== null && state.tableau && state.foundations;
+        }
+
+        function showResumeBanner() {
+            document.getElementById('resumeBanner').classList.add('show');
+        }
+
+        function hideResumeBanner() {
+            document.getElementById('resumeBanner').classList.remove('show');
+        }
+
+        function resumeGame() {
+            const state = loadGameState();
+            if (!state) {
+                hideResumeBanner();
+                newGame();
+                return;
+            }
+
+            tableau = state.tableau;
+            foundations = state.foundations;
+            moveHistory = state.moveHistory || [];
+            moveCount = state.moveCount || 0;
+            gameStartTime = state.gameStartTime || Date.now();
+            tutorialMode = state.tutorialMode || false;
+            tutorialStep = state.tutorialStep || 0;
+            gameEnded = false;
+            selected = null;
+            hintActive = false;
+
+            if (tutorialMode) {
+                document.body.classList.add('tutorial-active');
+                updateTutorialUI();
+            }
+
+            hideResumeBanner();
+            render();
+        }
+
+        function dismissResume() {
+            clearGameState();
+            hideResumeBanner();
+            newGame();
+        }
+
+        // Export/Import functions
+        function exportData() {
+            const data = {
+                version: 1,
+                exportedAt: new Date().toISOString(),
+                settings: {
+                    oneTapMove: oneTapMove,
+                    autoMoveAces: autoMoveAces,
+                    autoMoveFoundation: autoMoveFoundation
+                },
+                theme: currentTheme,
+                scoreboard: scoreboard,
+                gameState: loadGameState()
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `russian-solitaire-backup-${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+
+                    if (data.settings) {
+                        oneTapMove = data.settings.oneTapMove || false;
+                        autoMoveAces = data.settings.autoMoveAces || false;
+                        autoMoveFoundation = data.settings.autoMoveFoundation || false;
+                        document.getElementById('oneTapMove').checked = oneTapMove;
+                        document.getElementById('autoMoveAces').checked = autoMoveAces;
+                        document.getElementById('autoMoveFoundation').checked = autoMoveFoundation;
+                        saveSettings();
+                    }
+
+                    if (data.theme) {
+                        currentTheme = data.theme;
+                        saveTheme();
+                    }
+
+                    if (data.scoreboard && Array.isArray(data.scoreboard)) {
+                        scoreboard = data.scoreboard;
+                        saveScoreboard();
+                    }
+
+                    if (data.gameState) {
+                        localStorage.setItem('russianSolitaireGameState', JSON.stringify(data.gameState));
+                    }
+
+                    applyTheme();
+                    alert('Data imported successfully! ' +
+                          (data.gameState ? 'Saved game restored.' : 'No saved game in backup.'));
+
+                    if (data.gameState) {
+                        showResumeBanner();
+                    }
+                } catch (err) {
+                    alert('Error importing data: Invalid file format');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
         }
 
         function applyTheme() {
@@ -1366,6 +1608,7 @@
             moveHistory.push(action);
             moveCount++;
             clearHint();
+            saveGameState();
         }
 
         function clearHint() {
@@ -1395,6 +1638,7 @@
             moveCount--;
             clearHint();
             render();
+            saveGameState();
         }
 
         function showHint() {
@@ -1467,6 +1711,7 @@
         }
 
         function newGame() {
+            clearGameState();
             const deck = createDeck();
             foundations = [[], [], [], []];
             tableau = [[], [], [], [], [], [], []];
@@ -1496,6 +1741,7 @@
             hideGameOver();
             endTutorial();
             render();
+            saveGameState();
             setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
         }
 
@@ -1555,6 +1801,7 @@
 
                 hideGameOver();
                 render();
+                saveGameState();
                 showTutorialStep();
             } catch (error) {
                 console.error('Tutorial error:', error);
@@ -2032,6 +2279,8 @@
         function checkGameState() {
             const total = foundations.reduce((sum, f) => sum + f.length, 0);
             if (total === 52) {
+                gameEnded = true;
+                clearGameState();
                 addToScoreboard(true);
                 showGameOver(true);
             }
@@ -2077,6 +2326,7 @@
             if (moved) {
                 checkGameState();
                 render();
+                saveGameState();
                 setTimeout(() => tryAutoMoveToFoundationAnimated(), 150);
             }
 
@@ -2086,6 +2336,8 @@
         function checkLoseCondition() {
             const moves = findValidMoves();
             if (moves.length === 0) {
+                gameEnded = true;
+                clearGameState();
                 addToScoreboard(false);
                 showGameOver(false);
             }
@@ -2584,6 +2836,7 @@
                                 moveCount++;
                                 checkGameState();
                                 render();
+                                saveGameState();
                                 updateTutorialAfterMove();
                                 setTimeout(() => tryAutoMoveToFoundationAnimated(), 400);
                             });
@@ -2745,7 +2998,25 @@
         });
 
         loadSettings();
-        newGame();
+
+        // Check for saved game on startup
+        if (hasSavedGame()) {
+            showResumeBanner();
+            // Load the game state preview while showing banner
+            const state = loadGameState();
+            if (state) {
+                tableau = state.tableau;
+                foundations = state.foundations;
+                moveHistory = state.moveHistory || [];
+                moveCount = state.moveCount || 0;
+                gameStartTime = state.gameStartTime || Date.now();
+                tutorialMode = state.tutorialMode || false;
+                gameEnded = false;
+                render();
+            }
+        } else {
+            newGame();
+        }
     </script>
 </body>
 </html>
