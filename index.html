@@ -2545,35 +2545,8 @@
         }
 
         function newGameWithoutEndingTutorial() {
-            const deck = createDeck();
-            foundations = [[], [], [], []];
-            tableau = [[], [], [], [], [], [], []];
-            selected = null;
-            hintActive = false;
-            moveHistory = [];
-            moveCount = 0;
-            gameStartTime = Date.now();
-            gameEnded = false;
-
-            const totals = [1, 6, 7, 8, 9, 10, 11];
-            const faceUps = [1, 5, 5, 5, 5, 5, 5];
-            let cardIndex = 0;
-
-            for (let col = 0; col < 7; col++) {
-                const total = totals[col];
-                const faceUpCount = faceUps[col];
-                const faceDownCount = total - faceUpCount;
-
-                for (let i = 0; i < total; i++) {
-                    let card = deck[cardIndex++];
-                    card.faceDown = (i < faceDownCount);
-                    tableau[col].push(card);
-                }
-            }
-
-            hideGameOver();
-            render();
-            setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+            // Use the regular newGame function which includes dealer animation
+            newGame();
         }
 
         function checkTutorialProgress(action, col, index, targetCol, targetFoundation) {
