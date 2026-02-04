@@ -285,20 +285,21 @@
         .card-corner {
             position: absolute;
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            flex-direction: row;
+            align-items: baseline;
             line-height: 1;
             font-weight: bold;
+            gap: 1px;
         }
 
         .card-corner.top-left {
             top: 3px;
-            left: 4px;
+            left: 3px;
         }
 
         .card-corner.bottom-right {
             bottom: 3px;
-            right: 4px;
+            right: 3px;
             transform: rotate(180deg);
         }
 
@@ -308,7 +309,6 @@
 
         .card-corner .corner-suit {
             font-size: var(--corner-suit-size);
-            margin-top: -2px;
         }
 
         .card-center {
@@ -485,7 +485,6 @@
 
         .foundation-card .card-corner .corner-suit {
             font-size: var(--foundation-corner-suit-size);
-            margin-top: -1px;
         }
 
         .foundation-card .card-center {
