@@ -2069,19 +2069,21 @@
                 const sourceCardEl = document.querySelectorAll('.column')[fromCol].querySelectorAll('.card')[fromIndex];
                 const targetEl = document.querySelectorAll('.foundation')[target.index];
 
+                checkTutorialProgress('foundation', fromCol, fromIndex, null, target.index);
                 animateCardToTarget(sourceCardEl, targetEl, () => {
                     executeMove(fromCol, fromIndex, target);
                     render();
-                    setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                    if (!tutorialMode) setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                 });
             } else {
                 // Tableau to tableau - instant move
+                checkTutorialProgress('tableau', fromCol, fromIndex, target.index, null);
                 const cards = tableau[fromCol].splice(fromIndex);
                 const wasFaceDown = cards.map(c => c.faceDown);
                 saveMove({ type: 'tableau', fromCol: fromCol, toCol: target.index, cardCount: cards.length, cards: cards, wasFaceDown: wasFaceDown });
                 tableau[target.index].push(...cards);
                 render();
-                setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                if (!tutorialMode) setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
             }
         }
 
