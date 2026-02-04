@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Russian Solitaire</title>
     <style>
+        :root {
+            --card-width: 52px;
+            --foundation-width: 48px;
+            --column-gap: 6px;
+            --foundation-gap: 8px;
+            --body-padding: 8px;
+            --bottom-bar-height: 80px;
+            --card-font-size: 1.8rem;
+            --corner-value-size: 0.85rem;
+            --corner-suit-size: 0.7rem;
+            --card-face-icon-size: 1.3rem;
+            --foundation-corner-value-size: 0.7rem;
+            --foundation-corner-suit-size: 0.55rem;
+            --foundation-center-size: 1.3rem;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -23,8 +39,8 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #1a5f3c;
-            padding: 8px;
-            padding-bottom: 90px;
+            padding: var(--body-padding);
+            padding-bottom: calc(var(--bottom-bar-height) + 10px);
             -webkit-user-select: none;
             user-select: none;
             overscroll-behavior: none;
@@ -43,7 +59,7 @@
         body.bg-wood { background: #3d2b1f; }
 
         .game-container {
-            height: calc(100% - 75px - env(safe-area-inset-bottom));
+            height: calc(100% - var(--bottom-bar-height) + 5px - env(safe-area-inset-bottom));
             display: flex;
             flex-direction: column;
             touch-action: none;
@@ -52,7 +68,7 @@
 
         /* Reduce height when tutorial dialogue is visible */
         body.tutorial-active .game-container {
-            height: calc(100% - 75px - 140px - env(safe-area-inset-bottom));
+            height: calc(100% - var(--bottom-bar-height) + 5px - 140px - env(safe-area-inset-bottom));
         }
 
         .top-section {
@@ -75,12 +91,12 @@
         .foundations {
             display: flex;
             justify-content: center;
-            margin-bottom: 8px;
-            gap: 8px;
+            margin-bottom: var(--body-padding);
+            gap: var(--foundation-gap);
         }
 
         .foundation {
-            width: 48px;
+            width: var(--foundation-width);
             aspect-ratio: 5/7;
             background: rgba(255, 255, 255, 0.08);
             border: 2px dashed rgba(255, 255, 255, 0.2);
@@ -125,14 +141,14 @@
             flex: 1;
             display: flex;
             justify-content: center;
-            gap: 6px;
+            gap: var(--column-gap);
             padding: 4px;
             min-height: 0;
         }
 
         .column {
             flex: 1;
-            max-width: 52px;
+            max-width: var(--card-width);
             position: relative;
             cursor: pointer;
             border-radius: 6px;
@@ -287,11 +303,11 @@
         }
 
         .card-corner .corner-value {
-            font-size: 0.85rem;
+            font-size: var(--corner-value-size);
         }
 
         .card-corner .corner-suit {
-            font-size: 0.7rem;
+            font-size: var(--corner-suit-size);
             margin-top: -2px;
         }
 
@@ -300,11 +316,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.8rem;
+            font-size: var(--card-font-size);
         }
 
         .card-face-icon {
-            font-size: 1.3rem;
+            font-size: var(--card-face-icon-size);
             font-weight: bold;
         }
 
@@ -341,7 +357,7 @@
         .drag-ghost .card {
             position: relative !important;
             top: 0 !important;
-            margin-bottom: -50px;
+            margin-bottom: calc(-1 * var(--card-width) * 0.96);
         }
 
         .drag-ghost .card:last-child {
@@ -368,7 +384,7 @@
 
         .dealing-card {
             position: fixed;
-            width: 48px;
+            width: var(--foundation-width);
             aspect-ratio: 5/7;
             z-index: 1500;
             pointer-events: none;
@@ -383,9 +399,9 @@
         /* Deck stack appearance */
         .deck-stack {
             position: fixed;
-            top: 8px;
-            right: 8px;
-            width: 48px;
+            top: var(--body-padding);
+            right: var(--body-padding);
+            width: var(--foundation-width);
             aspect-ratio: 5/7;
             z-index: 1600;
         }
@@ -464,11 +480,11 @@
         }
 
         .foundation-card .card-corner .corner-value {
-            font-size: 0.7rem;
+            font-size: var(--foundation-corner-value-size);
         }
 
         .foundation-card .card-corner .corner-suit {
-            font-size: 0.55rem;
+            font-size: var(--foundation-corner-suit-size);
             margin-top: -1px;
         }
 
@@ -477,7 +493,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.3rem;
+            font-size: var(--foundation-center-size);
         }
 
         /* Bottom Bar - Large touch-friendly */
@@ -486,7 +502,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 80px;
+            height: var(--bottom-bar-height);
             background: rgba(0,0,0,0.4);
             display: flex;
             align-items: center;
@@ -884,9 +900,9 @@
         /* Tutorial styles */
         .tutorial-dialogue {
             position: fixed;
-            bottom: 90px;
-            left: 8px;
-            right: 8px;
+            bottom: calc(var(--bottom-bar-height) + 10px);
+            left: var(--body-padding);
+            right: var(--body-padding);
             background: rgba(0, 0, 0, 0.95);
             border: 2px solid #ffd700;
             border-radius: 12px;
@@ -992,6 +1008,61 @@
 
         .column.tutorial-target {
             background: rgba(76, 175, 80, 0.15);
+        }
+
+        /* Responsive scaling for larger screens */
+        /* Tablet / Small Landscape */
+        @media (min-width: 600px) and (min-height: 400px) {
+            :root {
+                --card-width: 65px;
+                --foundation-width: 60px;
+                --column-gap: 8px;
+                --foundation-gap: 10px;
+                --body-padding: 12px;
+                --card-font-size: 2.2rem;
+                --corner-value-size: 1rem;
+                --corner-suit-size: 0.85rem;
+                --card-face-icon-size: 1.6rem;
+                --foundation-corner-value-size: 0.85rem;
+                --foundation-corner-suit-size: 0.7rem;
+                --foundation-center-size: 1.6rem;
+            }
+        }
+
+        /* Desktop / Large Landscape */
+        @media (min-width: 900px) and (min-height: 500px) {
+            :root {
+                --card-width: 80px;
+                --foundation-width: 75px;
+                --column-gap: 10px;
+                --foundation-gap: 12px;
+                --body-padding: 16px;
+                --card-font-size: 2.6rem;
+                --corner-value-size: 1.15rem;
+                --corner-suit-size: 1rem;
+                --card-face-icon-size: 1.9rem;
+                --foundation-corner-value-size: 1rem;
+                --foundation-corner-suit-size: 0.85rem;
+                --foundation-center-size: 1.9rem;
+            }
+        }
+
+        /* Large Desktop */
+        @media (min-width: 1200px) and (min-height: 600px) {
+            :root {
+                --card-width: 95px;
+                --foundation-width: 90px;
+                --column-gap: 12px;
+                --foundation-gap: 14px;
+                --body-padding: 20px;
+                --card-font-size: 3rem;
+                --corner-value-size: 1.3rem;
+                --corner-suit-size: 1.15rem;
+                --card-face-icon-size: 2.2rem;
+                --foundation-corner-value-size: 1.15rem;
+                --foundation-corner-suit-size: 1rem;
+                --foundation-center-size: 2.2rem;
+            }
         }
     </style>
 </head>
@@ -1771,13 +1842,38 @@
             render();
         }
 
+        function getCardWidth() {
+            // Read card width from CSS custom property or DOM
+            const columnEl = document.querySelector('.column');
+            if (columnEl && columnEl.offsetWidth > 0) {
+                return columnEl.offsetWidth;
+            }
+            // Fallback: read from CSS variable
+            const rootStyle = getComputedStyle(document.documentElement);
+            const cssWidth = rootStyle.getPropertyValue('--card-width').trim();
+            if (cssWidth) {
+                return parseInt(cssWidth, 10) || 52;
+            }
+            return 52; // Default fallback
+        }
+
+        function getScaledSpacing() {
+            const cardWidth = getCardWidth();
+            const scale = cardWidth / 52; // Base scale factor
+            return {
+                minFaceDown: Math.round(MIN_FACE_DOWN_SPACING * scale),
+                minFaceUp: Math.round(MIN_FACE_UP_SPACING * scale)
+            };
+        }
+
         function calculateSpacing(cards) {
             if (cards.length === 0) return [];
 
             const tableauEl = document.getElementById('tableau');
-            const columnWidth = 52;
+            const columnWidth = getCardWidth();
             const cardHeight = columnWidth * (7/5);
             const availableHeight = tableauEl.clientHeight - cardHeight;
+            const spacing = getScaledSpacing();
 
             let faceDownCount = 0;
             let faceUpCount = 0;
@@ -1793,25 +1889,25 @@
 
             if (faceUpCount === 0) faceDownCount = cards.length;
 
-            const minFaceDownTotal = faceDownCount * MIN_FACE_DOWN_SPACING;
-            const minFaceUpTotal = Math.max(0, faceUpCount - 1) * MIN_FACE_UP_SPACING;
+            const minFaceDownTotal = faceDownCount * spacing.minFaceDown;
+            const minFaceUpTotal = Math.max(0, faceUpCount - 1) * spacing.minFaceUp;
             const minNeeded = minFaceDownTotal + minFaceUpTotal;
 
             if (minNeeded > availableHeight) {
                 const scale = availableHeight / minNeeded;
                 return cards.map((card, i) => {
                     if (i === cards.length - 1) return 0;
-                    return card.faceDown ? MIN_FACE_DOWN_SPACING * scale : MIN_FACE_UP_SPACING * scale;
+                    return card.faceDown ? spacing.minFaceDown * scale : spacing.minFaceUp * scale;
                 });
             }
 
-            const idealFaceUpSpacing = Math.min(cardHeight * 0.4, 32);
+            const idealFaceUpSpacing = Math.min(cardHeight * 0.4, 32 * (columnWidth / 52));
             const idealNeeded = minFaceDownTotal + Math.max(0, faceUpCount - 1) * idealFaceUpSpacing;
 
             if (idealNeeded <= availableHeight) {
                 return cards.map((card, i) => {
                     if (i === cards.length - 1) return 0;
-                    return card.faceDown ? MIN_FACE_DOWN_SPACING : idealFaceUpSpacing;
+                    return card.faceDown ? spacing.minFaceDown : idealFaceUpSpacing;
                 });
             }
 
@@ -1820,7 +1916,7 @@
 
             return cards.map((card, i) => {
                 if (i === cards.length - 1) return 0;
-                return card.faceDown ? MIN_FACE_DOWN_SPACING : Math.max(MIN_FACE_UP_SPACING, faceUpSpacing);
+                return card.faceDown ? spacing.minFaceDown : Math.max(spacing.minFaceUp, faceUpSpacing);
             });
         }
 
@@ -2010,9 +2106,11 @@
                 flyingCard.style.borderRadius = '6px';
                 flyingCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
 
-                // Start position (from deck)
-                flyingCard.style.left = (deckX - 24) + 'px';
-                flyingCard.style.top = (deckY - 34) + 'px';
+                // Start position (from deck) - use foundation width for offset
+                const foundationWidth = document.querySelector('.foundation')?.offsetWidth || 48;
+                const foundationHeight = foundationWidth * (7/5);
+                flyingCard.style.left = (deckX - foundationWidth / 2) + 'px';
+                flyingCard.style.top = (deckY - foundationHeight / 2) + 'px';
                 flyingCard.style.transform = 'rotate(-5deg) scale(0.9)';
                 flyingCard.style.opacity = '1';
 
@@ -2926,8 +3024,12 @@
             }
 
             if (isDragging && dragGhost) {
-                dragGhost.style.left = (clientX - 26) + 'px';
-                dragGhost.style.top = (clientY - 36) + 'px';
+                const cardWidth = getCardWidth();
+                const halfWidth = cardWidth / 2;
+                const cardHeight = cardWidth * (7/5);
+                const halfHeight = cardHeight / 2;
+                dragGhost.style.left = (clientX - halfWidth) + 'px';
+                dragGhost.style.top = (clientY - halfHeight) + 'px';
             }
         }
 
@@ -2949,12 +3051,16 @@
 
         function createDragGhost(col, index, clientX, clientY) {
             const cards = tableau[col].slice(index);
+            const cardWidth = getCardWidth();
+            const halfWidth = cardWidth / 2;
+            const cardHeight = cardWidth * (7/5);
+            const halfHeight = cardHeight / 2;
 
             dragGhost = document.createElement('div');
             dragGhost.className = 'drag-ghost';
-            dragGhost.style.left = (clientX - 26) + 'px';
-            dragGhost.style.top = (clientY - 36) + 'px';
-            dragGhost.style.width = '52px';
+            dragGhost.style.left = (clientX - halfWidth) + 'px';
+            dragGhost.style.top = (clientY - halfHeight) + 'px';
+            dragGhost.style.width = cardWidth + 'px';
 
             cards.forEach((card, i) => {
                 const cardEl = document.createElement('div');
@@ -3331,6 +3437,17 @@
             if (dragData) {
                 endDrag(e.clientX, e.clientY);
             }
+        });
+
+        // Handle window resize - re-render to adjust card spacing
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (!isDealing) {
+                    render();
+                }
+            }, 100);
         });
 
         loadSettings();
