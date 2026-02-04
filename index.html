@@ -171,23 +171,41 @@
             border-width: 3px;
         }
 
-        /* WHITE card face theme */
+        /* WHITE card face theme - white bg, black/red text */
         .card.face-white {
-            background: #ffffff;
-            border: 1px solid #cccccc;
+            background: #ffffff !important;
+            border: 1px solid #cccccc !important;
         }
-        .card.face-white .card-inner { color: inherit; }
-        .card.face-white.red { color: #cc0000; }
-        .card.face-white.black { color: #000000; }
+        .card.face-white.red,
+        .card.face-white.red .card-inner,
+        .card.face-white.red .card-corner,
+        .card.face-white.red .card-center {
+            color: #cc0000 !important;
+        }
+        .card.face-white.black,
+        .card.face-white.black .card-inner,
+        .card.face-white.black .card-corner,
+        .card.face-white.black .card-center {
+            color: #000000 !important;
+        }
 
-        /* BLACK card face theme */
+        /* BLACK card face theme - black bg, white/red text */
         .card.face-black {
-            background: #1a1a1a;
-            border: 1px solid #444444;
+            background: #1a1a1a !important;
+            border: 1px solid #444444 !important;
         }
-        .card.face-black .card-inner { color: inherit; }
-        .card.face-black.red { color: #ff4444; }
-        .card.face-black.black { color: #ffffff; }
+        .card.face-black.red,
+        .card.face-black.red .card-inner,
+        .card.face-black.red .card-corner,
+        .card.face-black.red .card-center {
+            color: #ff4444 !important;
+        }
+        .card.face-black.black,
+        .card.face-black.black .card-inner,
+        .card.face-black.black .card-corner,
+        .card.face-black.black .card-center {
+            color: #ffffff !important;
+        }
 
         .card-inner {
             width: 100%;
@@ -265,17 +283,35 @@
             position: relative;
         }
 
+        /* Foundation WHITE theme */
         .foundation-card.face-white {
-            background: #ffffff;
+            background: #ffffff !important;
         }
-        .foundation-card.face-white.red { color: #cc0000; }
-        .foundation-card.face-white.black { color: #000000; }
+        .foundation-card.face-white.red,
+        .foundation-card.face-white.red .card-corner,
+        .foundation-card.face-white.red .card-center {
+            color: #cc0000 !important;
+        }
+        .foundation-card.face-white.black,
+        .foundation-card.face-white.black .card-corner,
+        .foundation-card.face-white.black .card-center {
+            color: #000000 !important;
+        }
 
+        /* Foundation BLACK theme */
         .foundation-card.face-black {
-            background: #1a1a1a;
+            background: #1a1a1a !important;
         }
-        .foundation-card.face-black.red { color: #ff4444; }
-        .foundation-card.face-black.black { color: #ffffff; }
+        .foundation-card.face-black.red,
+        .foundation-card.face-black.red .card-corner,
+        .foundation-card.face-black.red .card-center {
+            color: #ff4444 !important;
+        }
+        .foundation-card.face-black.black,
+        .foundation-card.face-black.black .card-corner,
+        .foundation-card.face-black.black .card-center {
+            color: #ffffff !important;
+        }
 
         .foundation-card .card-corner {
             position: absolute;
