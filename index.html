@@ -740,6 +740,17 @@
         function executeMove(cardCol, cardIndex, target) {
             const card = tableau[cardCol][cardIndex];
             
+            // Determine cards to move (just the card for foundation, stack for tableau)
+            let cardsToMove;
+            if (target.type === 'foundation') {
+                cardsToMove = [card];
+            } else {
+                cardsToMove = tableau[cardCol].splice(cardIndex);
+            }
+            
+            // Track face-down state before move
+            const wasFaceDown = cardsToMove.map(c => c.faceDown);
+            
             if (target.type === 'foundation') {
                 saveMove({
                     type: 'foundation',
@@ -751,18 +762,15 @@
                 tableau[cardCol].splice(cardIndex, 1);
                 checkGameState();
             } else {
-                const cards = tableau[cardCol].splice(cardIndex);
-                // Track face-down state before move
-                const wasFaceDown = cards.map(c => c.faceDown);
                 saveMove({
                     type: 'tableau',
                     fromCol: cardCol,
                     toCol: target.index,
-                    cardCount: cards.length,
-                    cards: cards,
+                    cardCount: cardsToMove.length,
+                    cards: cardsToMove,
                     wasFaceDown: wasFaceDown
                 });
-                tableau[target.index].push(...cards);
+                tableau[target.index].push(...cardsToMove);
                 checkGameState();
             }
         }
@@ -781,9 +789,8 @@
                 return;
             }
             
-            // One tap move - only works for top cards
+            // One tap move - try to find and execute valid move
             if (oneTapMove) {
-                if (!isTopCard) return;
                 const validMove = findValidMove(card);
                 if (validMove) {
                     executeMove(col, index, validMove);
@@ -793,12 +800,49 @@
             }
             
             // Manual mode - select/deselect any face-up card
+            // If card is already selected by hint, try to move it
             if (selected && selected.col === col && selected.index === index) {
+                // Card is already selected - try to find a valid destination
+                // Try foundations first
+                for (let f = 0; f < 4; f++) {
+                    const foundation = foundations[f];
+                    const top = foundation[foundation.length - 1];
+                    const isEmptyFoundation = !top;
+                    const isValidFoundation = isEmptyFoundation 
+                        ? (card.value === 'A' && suits[f] === card.suit)
+                        : (card.suit === top.suit && card.valueNum === top.valueNum + 1);
+                    
+                    if (isValidFoundation) {
+                        executeMove(col, index, { type: 'foundation', index: f });
+                        render();
+                        return;
+                    }
+                }
+                
+                // Try tableau
+                for (let targetCol = 0; targetCol < 7; targetCol++) {
+                    if (targetCol === col) continue;
+                    const targetTop = tableau[targetCol][tableau[targetCol].length - 1];
+                    const isEmptyTableau = !targetTop;
+                    const isValidTableau = isEmptyTableau
+                        ? (card.value === 'K')
+                        : (card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1);
+                    
+                    if (isValidTableau) {
+                        executeMove(col, index, { type: 'tableau', index: targetCol });
+                        render();
+                        return;
+                    }
+                }
+                
+                // No valid move found, just deselect
                 selected = null;
+                render();
             } else {
+                // Select the card
                 selected = {col, index};
+                render();
             }
-            render();
         }
         
         function handleFoundationClick(fIndex) {
