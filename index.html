@@ -707,6 +707,15 @@
             color: #ff6b6b;
         }
 
+        .scoreboard-table tr.tutorial {
+            opacity: 0.7;
+            font-style: italic;
+        }
+
+        .scoreboard-table tr.tutorial small {
+            color: #aaa;
+        }
+
         .no-scores {
             text-align: center;
             color: #888;
@@ -829,7 +838,7 @@
         }
     </style>
 </head>
-<body class="bg-classic-green">
+<body class="bg-charcoal">
     <div class="game-container">
         <div class="top-section">
             <div class="header">
@@ -1032,8 +1041,8 @@
         };
 
         let currentTheme = {
-            background: 'classic-green',
-            cardBack: 'blue',
+            background: 'charcoal',
+            cardBack: 'red',
             cardFace: 'white'
         };
 
@@ -1205,11 +1214,11 @@
                         </thead>
                         <tbody>
                             ${sorted.map(game => `
-                                <tr class="${game.win ? 'win' : 'loss'}">
+                                <tr class="${game.win ? 'win' : 'loss'}${game.tutorial ? ' tutorial' : ''}">
                                     <td>${formatDate(game.date)}</td>
                                     <td>${game.moves}</td>
                                     <td>${formatTime(game.time)}</td>
-                                    <td>${game.win ? 'Win' : 'Loss'}</td>
+                                    <td>${game.win ? 'Win' : 'Loss'}${game.tutorial ? ' <small>(Tutorial)</small>' : ''}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -1230,7 +1239,13 @@
             if (gameEnded) return;
             gameEnded = true;
             const timeElapsed = Math.floor((Date.now() - gameStartTime) / 1000);
-            scoreboard.push({ date: Date.now(), moves: moveCount, time: timeElapsed, win: win });
+            scoreboard.push({
+                date: Date.now(),
+                moves: moveCount,
+                time: timeElapsed,
+                win: win,
+                tutorial: tutorialMode
+            });
             saveScoreboard();
         }
 
@@ -1629,9 +1644,13 @@
             const titleEl = document.getElementById('tutorialTitle');
             const textEl = document.getElementById('tutorialText');
             const nextBtn = document.getElementById('tutorialNextBtn');
+            const skipBtn = document.querySelector('.tutorial-dialogue .btn-skip');
 
             // Add class to body for layout adjustment
             document.body.classList.add('tutorial-active');
+
+            // Ensure skip button is visible during tutorial
+            if (skipBtn) skipBtn.style.display = 'block';
 
             // Reset highlights
             tutorialHighlights = { cards: [], foundations: [], columns: [], targetCards: [] };
@@ -1736,6 +1755,7 @@
             const titleEl = document.getElementById('tutorialTitle');
             const textEl = document.getElementById('tutorialText');
             const nextBtn = document.getElementById('tutorialNextBtn');
+            const skipBtn = document.querySelector('.tutorial-dialogue .btn-skip');
 
             // Russian Solitaire has approximately 5-10% win rate
             const estimatedWinRate = "5-10%";
@@ -1743,6 +1763,9 @@
             const timeElapsed = Math.floor((Date.now() - gameStartTime) / 1000);
 
             tutorialHighlights = { cards: [], foundations: [], columns: [], targetCards: [] };
+
+            // Hide skip button on win/lose screen, only show New Game
+            if (skipBtn) skipBtn.style.display = 'none';
 
             if (isWin) {
                 stepEl.textContent = "You Won!";
