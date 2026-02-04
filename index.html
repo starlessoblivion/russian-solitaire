@@ -1866,11 +1866,19 @@
 
         function undo() {
             if (moveHistory.length === 0) return;
+            // Prevent undo during auto-move or auto-finish animations
+            if (isAutoMoving || isAutoFinishing) return;
+
             const action = moveHistory.pop();
 
             if (action.type === 'foundation') {
-                const card = foundations[action.fromFoundation].pop();
-                tableau[action.fromCol].push(card);
+                // Remove card from foundation and return to tableau
+                if (foundations[action.fromFoundation] && foundations[action.fromFoundation].length > 0) {
+                    const card = foundations[action.fromFoundation].pop();
+                    if (card) {
+                        tableau[action.fromCol].push(card);
+                    }
+                }
             } else if (action.type === 'tableau') {
                 const cardsToMove = tableau[action.toCol].splice(-action.cardCount);
                 if (action.wasFaceDown && cardsToMove.length === action.wasFaceDown.length) {
@@ -1882,7 +1890,9 @@
             }
 
             moveCount--;
+            if (moveCount < 0) moveCount = 0;
             clearHint();
+            selected = null;
             render();
             saveGameState();
         }
@@ -2485,7 +2495,7 @@
                                analysis.flips.length > 0 || analysis.kings.length > 0 ||
                                analysis.tableauStacks.length > 0 || analysis.tableau.length > 0;
 
-            if (!hasAnyMoves && tutorialStep > 0) {
+            if (!hasAnyMoves && tutorialStep > 1) {
                 showTutorialEndGame(false);
                 return;
             }
@@ -2495,6 +2505,16 @@
                 stepEl.textContent = "Getting Started";
                 titleEl.textContent = tutorialMessages.welcome.title;
                 textEl.textContent = tutorialMessages.welcome.text;
+                nextBtn.textContent = "Got it!";
+                nextBtn.style.display = 'block';
+            } else if (tutorialStep === 1) {
+                // Second step: highlight the board areas
+                stepEl.textContent = "The Board";
+                titleEl.textContent = "Foundations & Tableau";
+                textEl.textContent = "The 4 piles at the TOP are the Foundations - build each suit from Ace to King here. The 7 columns below are the Tableau - stack cards DOWN by SAME SUIT (not alternating colors like regular solitaire).";
+                // Highlight all foundations and all columns
+                tutorialHighlights.foundations = [0, 1, 2, 3];
+                tutorialHighlights.columns = [0, 1, 2, 3, 4, 5, 6];
                 nextBtn.textContent = "Got it!";
                 nextBtn.style.display = 'block';
             } else if (analysis.aces.length > 0) {
@@ -2551,7 +2571,7 @@
                 tutorialHighlights.cards.push({ col: move.col, index: move.index });
                 tutorialHighlights.targetCards.push({ col: move.targetCol, index: move.targetIndex });
                 nextBtn.style.display = 'none';
-            } else if (tutorialStep > 0) {
+            } else if (tutorialStep > 1) {
                 // Fallback - no specific move detected but not game over
                 stepEl.textContent = "Keep Playing";
                 titleEl.textContent = "Look for Moves";
@@ -2690,7 +2710,7 @@
         }
 
         function updateTutorialAfterMove() {
-            if (tutorialMode && tutorialStep > 0 && !tutorialSettingPrompt) {
+            if (tutorialMode && tutorialStep > 1 && !tutorialSettingPrompt) {
                 // Small delay to let animations finish
                 setTimeout(() => {
                     // Double-check we're not showing a settings prompt
