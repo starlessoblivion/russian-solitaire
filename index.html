@@ -359,6 +359,23 @@
             50% { transform: scale(1.05); }
         }
 
+        /* Auto-hint pulse animation */
+        .card.auto-hint-pulse {
+            box-shadow: 0 0 0 3px #ffa500, 0 4px 12px rgba(255,165,0,0.6);
+            animation: autoHintPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes autoHintPulse {
+            0%, 100% {
+                box-shadow: 0 0 0 3px #ffa500, 0 4px 12px rgba(255,165,0,0.6);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 0 5px #ffa500, 0 4px 20px rgba(255,165,0,0.8);
+                transform: scale(1.03);
+            }
+        }
+
         /* Drag and drop styles */
         .card.dragging {
             opacity: 0.5;
@@ -1148,6 +1165,13 @@
                     <span class="toggle-slider"></span>
                 </label>
             </div>
+            <div class="setting-row">
+                <span>Auto-Hint (5s delay)</span>
+                <label class="toggle">
+                    <input type="checkbox" id="autoHint" onchange="saveSettings()">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
             <button class="modal-btn secondary" onclick="toggleSettings(); toggleThemes();">Customize Theme</button>
             <button class="modal-btn" onclick="toggleSettings(); startTutorial();">How to Play</button>
 
@@ -1257,6 +1281,8 @@
         let autoMoveAces = false;
         let autoMoveFoundation = false;
         let autoFinishGame = false;
+        let autoHint = false;
+        let autoHintTimer = null;
         let moveHistory = [];
         let moveCount = 0;
         let gameStartTime = null;
@@ -1368,6 +1394,7 @@
                 autoMoveAces = settings.autoMoveAces || false;
                 autoMoveFoundation = settings.autoMoveFoundation || false;
                 autoFinishGame = settings.autoFinishGame || false;
+                autoHint = settings.autoHint || false;
                 hasPromptedAutoFinish = settings.hasPromptedAutoFinish || false;
             } else {
                 // Default settings for new users
@@ -1375,12 +1402,14 @@
                 autoMoveAces = false;
                 autoMoveFoundation = false;
                 autoFinishGame = false;
+                autoHint = false;
                 hasPromptedAutoFinish = false;
             }
             document.getElementById('oneTapMove').checked = oneTapMove;
             document.getElementById('autoMoveAces').checked = autoMoveAces;
             document.getElementById('autoMoveFoundation').checked = autoMoveFoundation;
             document.getElementById('autoFinishGame').checked = autoFinishGame;
+            document.getElementById('autoHint').checked = autoHint;
 
             const savedTheme = localStorage.getItem('russianSolitaireTheme');
             if (savedTheme) {
@@ -1400,9 +1429,12 @@
             autoMoveAces = document.getElementById('autoMoveAces').checked;
             autoMoveFoundation = document.getElementById('autoMoveFoundation').checked;
             autoFinishGame = document.getElementById('autoFinishGame').checked;
+            autoHint = document.getElementById('autoHint').checked;
             localStorage.setItem('russianSolitaireSettings', JSON.stringify({
-                oneTapMove, autoMoveAces, autoMoveFoundation, autoFinishGame, hasPromptedAutoFinish
+                oneTapMove, autoMoveAces, autoMoveFoundation, autoFinishGame, autoHint, hasPromptedAutoFinish
             }));
+            // Reset auto-hint timer when settings change
+            resetAutoHintTimer();
         }
 
         function saveTheme() {
@@ -1506,6 +1538,7 @@
                     autoMoveAces: autoMoveAces,
                     autoMoveFoundation: autoMoveFoundation,
                     autoFinishGame: autoFinishGame,
+                    autoHint: autoHint,
                     hasPromptedAutoFinish: hasPromptedAutoFinish
                 },
                 theme: currentTheme,
@@ -1538,11 +1571,13 @@
                         autoMoveAces = data.settings.autoMoveAces || false;
                         autoMoveFoundation = data.settings.autoMoveFoundation || false;
                         autoFinishGame = data.settings.autoFinishGame || false;
+                        autoHint = data.settings.autoHint || false;
                         hasPromptedAutoFinish = data.settings.hasPromptedAutoFinish || false;
                         document.getElementById('oneTapMove').checked = oneTapMove;
                         document.getElementById('autoMoveAces').checked = autoMoveAces;
                         document.getElementById('autoMoveFoundation').checked = autoMoveFoundation;
                         document.getElementById('autoFinishGame').checked = autoFinishGame;
+                        document.getElementById('autoHint').checked = autoHint;
                         saveSettings();
                     }
 
@@ -1595,6 +1630,7 @@
             autoMoveAces = false;
             autoMoveFoundation = false;
             autoFinishGame = false;
+            autoHint = false;
             hasPromptedAutoFinish = false;
             currentTheme = {
                 background: 'charcoal',
@@ -1608,6 +1644,7 @@
             document.getElementById('autoMoveAces').checked = false;
             document.getElementById('autoMoveFoundation').checked = false;
             document.getElementById('autoFinishGame').checked = false;
+            document.getElementById('autoHint').checked = false;
 
             // Apply default theme
             applyTheme();
@@ -1849,6 +1886,7 @@
             moveCount++;
             clearHint();
             saveGameState();
+            resetAutoHintTimer();
 
             // After user's first move, enable auto-moves
             if (waitingForFirstMove) {
@@ -1860,6 +1898,7 @@
         function clearHint() {
             if (hintActive) {
                 hintActive = false;
+                resetAutoHintTimer();
                 selected = null;
             }
         }
@@ -1895,6 +1934,7 @@
             selected = null;
             render();
             saveGameState();
+            resetAutoHintTimer();
         }
 
         function showHint() {
@@ -1911,6 +1951,57 @@
                 selected = { col: randomMove.cardCol, index: randomMove.cardIndex };
             }
             render();
+        }
+
+        // Auto-hint timer functions
+        function resetAutoHintTimer() {
+            // Clear any existing timer
+            if (autoHintTimer) {
+                clearTimeout(autoHintTimer);
+                autoHintTimer = null;
+            }
+
+            // Don't start timer if auto-hint is disabled, game ended, or dealing
+            if (!autoHint || gameEnded || isDealing) return;
+            if (tutorialMode && tutorialStep <= 1) return;
+
+            // Start new 5-second timer
+            autoHintTimer = setTimeout(() => {
+                triggerAutoHint();
+            }, 5000);
+        }
+
+        function triggerAutoHint() {
+            // Don't show hint if conditions changed
+            if (!autoHint || gameEnded || hintActive || isAutoMoving || isAutoFinishing) return;
+            if (isDealing) return;
+
+            const moves = findValidMoves();
+            if (moves.length === 0) return;
+
+            // Pick a hint (prefer foundation moves, then others)
+            let hintMove = moves.find(m => m.type === 'foundation') || moves[0];
+
+            hintActive = true;
+            if (hintMove.type === 'flip') {
+                selected = { col: hintMove.cardCol, index: tableau[hintMove.cardCol].length - 1 };
+            } else {
+                selected = { col: hintMove.cardCol, index: hintMove.cardIndex };
+            }
+
+            // Mark as auto-hint for pulsing animation
+            render();
+
+            // Add pulse class to hinted card
+            setTimeout(() => {
+                const columns = document.querySelectorAll('.column');
+                if (columns[selected.col]) {
+                    const cards = columns[selected.col].querySelectorAll('.card');
+                    if (cards[selected.index]) {
+                        cards[selected.index].classList.add('auto-hint-pulse');
+                    }
+                }
+            }, 50);
         }
 
         function getCardWidth() {
@@ -1995,6 +2086,12 @@
 
         function newGame(skipAnimation = false) {
             if (isDealing) return;
+
+            // Clear auto-hint timer
+            if (autoHintTimer) {
+                clearTimeout(autoHintTimer);
+                autoHintTimer = null;
+            }
 
             clearGameState();
             const deck = createDeck();
@@ -2122,6 +2219,7 @@
                     waitingForFirstMove = true; // Let user make the first move
                     render();
                     saveGameState();
+                    resetAutoHintTimer(); // Start auto-hint timer after dealing
                     return;
                 }
 
