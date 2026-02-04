@@ -273,6 +273,48 @@
             50% { transform: scale(1.05); }
         }
 
+        /* Drag and drop styles */
+        .card.dragging {
+            opacity: 0.5;
+        }
+
+        .drag-ghost {
+            position: fixed;
+            pointer-events: none;
+            z-index: 2000;
+            opacity: 0.95;
+            transform: rotate(3deg) scale(1.05);
+            filter: drop-shadow(0 8px 16px rgba(0,0,0,0.5));
+        }
+
+        .drag-ghost .card {
+            position: relative !important;
+            top: 0 !important;
+            margin-bottom: -50px;
+        }
+
+        .drag-ghost .card:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Flying card animation */
+        .card-flying {
+            position: fixed;
+            z-index: 1500;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .column.valid-drop-target {
+            background: rgba(0, 255, 0, 0.15);
+        }
+
+        .foundation.valid-drop-target {
+            background: rgba(0, 255, 0, 0.25);
+            border-color: #00ff00;
+            border-style: solid;
+        }
+
         /* Foundation card styles */
         .foundation-card {
             width: 100%;
@@ -778,6 +820,14 @@
         let scoreboard = [];
         let scoreboardSort = { column: 'date', ascending: false };
 
+        // Drag and drop state
+        let isDragging = false;
+        let dragData = null;
+        let dragGhost = null;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let dragThreshold = 10; // pixels before drag starts
+
         // Theme configuration
         const themes = {
             backgrounds: [
@@ -809,9 +859,10 @@
             cardFace: 'white'
         };
 
-        // Prevent pull-to-refresh
+        // Prevent pull-to-refresh (but allow drag)
         document.addEventListener('touchmove', function(e) {
             if (e.target.closest('.modal')) return;
+            if (e.target.closest('.scoreboard-container')) return;
             e.preventDefault();
         }, { passive: false });
 
@@ -1204,7 +1255,7 @@
 
             hideGameOver();
             render();
-            setTimeout(() => tryAutoMoveToFoundation(), 100);
+            setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
         }
 
         function findValidMoves() {
@@ -1305,7 +1356,7 @@
             if (moved) {
                 checkGameState();
                 render();
-                setTimeout(() => tryAutoMoveToFoundation(), 150);
+                setTimeout(() => tryAutoMoveToFoundationAnimated(), 150);
             }
 
             return moved;
@@ -1408,7 +1459,7 @@
                     card.faceDown = false;
                     saveMove({ type: 'flip', col, index });
                     render();
-                    setTimeout(() => tryAutoMoveToFoundation(), 100);
+                    setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                 }
                 return;
             }
@@ -1418,7 +1469,7 @@
                 if (validMove) {
                     executeMove(col, index, validMove);
                     render();
-                    setTimeout(() => tryAutoMoveToFoundation(), 100);
+                    setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                 }
                 return;
             }
@@ -1430,7 +1481,7 @@
                     if (isValid && isTopCard) {
                         executeMove(col, index, { type: 'foundation', index: f });
                         render();
-                        setTimeout(() => tryAutoMoveToFoundation(), 100);
+                        setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                         return;
                     }
                 }
@@ -1444,7 +1495,7 @@
                     if (isValid) {
                         executeMove(col, index, { type: 'tableau', index: targetCol });
                         render();
-                        setTimeout(() => tryAutoMoveToFoundation(), 100);
+                        setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                         return;
                     }
                 }
@@ -1478,7 +1529,7 @@
                 selected = null;
                 checkGameState();
                 render();
-                setTimeout(() => tryAutoMoveToFoundation(), 100);
+                setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                 return;
             }
 
@@ -1518,7 +1569,277 @@
 
             selected = null;
             render();
-            if (didMove) setTimeout(() => tryAutoMoveToFoundation(), 100);
+            if (didMove) setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+        }
+
+        // Drag and drop functions
+        function startDrag(col, index, clientX, clientY) {
+            const card = tableau[col][index];
+            if (card.faceDown) return;
+
+            dragData = { col, index, startX: clientX, startY: clientY };
+            dragStartX = clientX;
+            dragStartY = clientY;
+        }
+
+        function moveDrag(clientX, clientY) {
+            if (!dragData) return;
+
+            const dx = Math.abs(clientX - dragData.startX);
+            const dy = Math.abs(clientY - dragData.startY);
+
+            if (!isDragging && (dx > dragThreshold || dy > dragThreshold)) {
+                isDragging = true;
+                createDragGhost(dragData.col, dragData.index, clientX, clientY);
+                highlightValidTargets(dragData.col, dragData.index);
+            }
+
+            if (isDragging && dragGhost) {
+                dragGhost.style.left = (clientX - 26) + 'px';
+                dragGhost.style.top = (clientY - 36) + 'px';
+            }
+        }
+
+        function endDrag(clientX, clientY) {
+            if (!dragData) return;
+
+            if (isDragging) {
+                const target = findDropTarget(clientX, clientY);
+                if (target) {
+                    executeDrop(dragData.col, dragData.index, target);
+                }
+                removeDragGhost();
+                clearDropHighlights();
+            }
+
+            isDragging = false;
+            dragData = null;
+        }
+
+        function createDragGhost(col, index, clientX, clientY) {
+            const cards = tableau[col].slice(index);
+
+            dragGhost = document.createElement('div');
+            dragGhost.className = 'drag-ghost';
+            dragGhost.style.left = (clientX - 26) + 'px';
+            dragGhost.style.top = (clientY - 36) + 'px';
+            dragGhost.style.width = '52px';
+
+            cards.forEach((card, i) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                cardEl.style.cssText = getCardStyle(card);
+                cardEl.innerHTML = renderCardContent(card);
+                dragGhost.appendChild(cardEl);
+            });
+
+            document.body.appendChild(dragGhost);
+
+            // Mark source cards as dragging
+            const columnEl = document.querySelectorAll('.column')[col];
+            const cardEls = columnEl.querySelectorAll('.card');
+            for (let i = index; i < cardEls.length; i++) {
+                cardEls[i].classList.add('dragging');
+            }
+        }
+
+        function removeDragGhost() {
+            if (dragGhost) {
+                dragGhost.remove();
+                dragGhost = null;
+            }
+            document.querySelectorAll('.card.dragging').forEach(el => el.classList.remove('dragging'));
+        }
+
+        function highlightValidTargets(fromCol, fromIndex) {
+            const card = tableau[fromCol][fromIndex];
+            const isTopCard = fromIndex === tableau[fromCol].length - 1;
+
+            // Highlight valid columns
+            document.querySelectorAll('.column').forEach((colEl, targetCol) => {
+                if (targetCol === fromCol) return;
+
+                const targetTop = tableau[targetCol][tableau[targetCol].length - 1];
+                if (targetTop && targetTop.faceDown) return;
+
+                const isValid = !targetTop
+                    ? (card.value === 'K')
+                    : (card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1);
+
+                if (isValid) {
+                    colEl.classList.add('valid-drop-target');
+                }
+            });
+
+            // Highlight valid foundations (only for single top cards)
+            if (isTopCard) {
+                document.querySelectorAll('.foundation').forEach((foundEl, f) => {
+                    const top = foundations[f][foundations[f].length - 1];
+                    const isValid = !top
+                        ? (card.value === 'A' && card.suitIndex === f)
+                        : (card.suit === top.suit && card.valueNum === top.valueNum + 1);
+
+                    if (isValid) {
+                        foundEl.classList.add('valid-drop-target');
+                    }
+                });
+            }
+        }
+
+        function clearDropHighlights() {
+            document.querySelectorAll('.valid-drop-target').forEach(el => {
+                el.classList.remove('valid-drop-target');
+            });
+        }
+
+        function findDropTarget(clientX, clientY) {
+            const elements = document.elementsFromPoint(clientX, clientY);
+
+            // Check foundations first
+            for (const el of elements) {
+                if (el.classList.contains('foundation') && el.classList.contains('valid-drop-target')) {
+                    const foundations = document.querySelectorAll('.foundation');
+                    for (let i = 0; i < foundations.length; i++) {
+                        if (foundations[i] === el) {
+                            return { type: 'foundation', index: i };
+                        }
+                    }
+                }
+            }
+
+            // Check columns
+            for (const el of elements) {
+                if (el.classList.contains('column') && el.classList.contains('valid-drop-target')) {
+                    const columns = document.querySelectorAll('.column');
+                    for (let i = 0; i < columns.length; i++) {
+                        if (columns[i] === el) {
+                            return { type: 'tableau', index: i };
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        function executeDrop(fromCol, fromIndex, target) {
+            clearHint();
+
+            if (target.type === 'foundation') {
+                // Only top card can go to foundation
+                if (fromIndex !== tableau[fromCol].length - 1) return;
+
+                const card = tableau[fromCol][fromIndex];
+                const sourceCardEl = document.querySelectorAll('.column')[fromCol].querySelectorAll('.card')[fromIndex];
+                const targetEl = document.querySelectorAll('.foundation')[target.index];
+
+                animateCardToTarget(sourceCardEl, targetEl, () => {
+                    executeMove(fromCol, fromIndex, target);
+                    render();
+                    setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                });
+            } else {
+                // Tableau to tableau - instant move
+                const cards = tableau[fromCol].splice(fromIndex);
+                const wasFaceDown = cards.map(c => c.faceDown);
+                saveMove({ type: 'tableau', fromCol: fromCol, toCol: target.index, cardCount: cards.length, cards: cards, wasFaceDown: wasFaceDown });
+                tableau[target.index].push(...cards);
+                render();
+                setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+            }
+        }
+
+        // Animation function for flying cards
+        function animateCardToTarget(sourceEl, targetEl, callback) {
+            if (!sourceEl || !targetEl) {
+                callback();
+                return;
+            }
+
+            const sourceRect = sourceEl.getBoundingClientRect();
+            const targetRect = targetEl.getBoundingClientRect();
+            const card = null; // We'll get it from context
+
+            // Create flying card
+            const flyingCard = document.createElement('div');
+            flyingCard.className = 'card-flying';
+            flyingCard.style.width = sourceRect.width + 'px';
+            flyingCard.style.height = sourceRect.height + 'px';
+            flyingCard.style.left = sourceRect.left + 'px';
+            flyingCard.style.top = sourceRect.top + 'px';
+            flyingCard.innerHTML = sourceEl.innerHTML;
+            flyingCard.style.cssText += sourceEl.style.cssText;
+            flyingCard.style.position = 'fixed';
+            flyingCard.style.zIndex = '1500';
+            flyingCard.style.pointerEvents = 'none';
+            flyingCard.style.borderRadius = '6px';
+            flyingCard.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
+            flyingCard.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+
+            document.body.appendChild(flyingCard);
+
+            // Hide source card
+            sourceEl.style.opacity = '0';
+
+            // Trigger animation
+            requestAnimationFrame(() => {
+                flyingCard.style.left = targetRect.left + 'px';
+                flyingCard.style.top = targetRect.top + 'px';
+                flyingCard.style.width = targetRect.width + 'px';
+                flyingCard.style.height = targetRect.height + 'px';
+            });
+
+            // Clean up after animation
+            setTimeout(() => {
+                flyingCard.remove();
+                callback();
+            }, 300);
+        }
+
+        // Animated auto-move to foundation
+        function tryAutoMoveToFoundationAnimated() {
+            if (!autoMoveAces && !autoMoveFoundation) return false;
+
+            let moved = false;
+
+            for (let col = 0; col < 7; col++) {
+                if (tableau[col].length === 0) continue;
+                const topCard = tableau[col][tableau[col].length - 1];
+                if (topCard.faceDown) continue;
+
+                for (let f = 0; f < 4; f++) {
+                    const foundationTop = foundations[f][foundations[f].length - 1];
+                    let shouldMove = false;
+
+                    if (!foundationTop && topCard.value === 'A' && topCard.suitIndex === f && autoMoveAces) {
+                        shouldMove = true;
+                    } else if (foundationTop && topCard.suit === foundationTop.suit && topCard.valueNum === foundationTop.valueNum + 1 && autoMoveFoundation) {
+                        shouldMove = true;
+                    }
+
+                    if (shouldMove) {
+                        // Get elements for animation
+                        const columnEl = document.querySelectorAll('.column')[col];
+                        const cardEls = columnEl.querySelectorAll('.card');
+                        const sourceCardEl = cardEls[cardEls.length - 1];
+                        const targetEl = document.querySelectorAll('.foundation')[f];
+
+                        animateCardToTarget(sourceCardEl, targetEl, () => {
+                            foundations[f].push(topCard);
+                            tableau[col].pop();
+                            moveHistory.push({ type: 'foundation', fromCol: col, fromFoundation: f, card: topCard });
+                            moveCount++;
+                            checkGameState();
+                            render();
+                            setTimeout(() => tryAutoMoveToFoundationAnimated(), 150);
+                        });
+
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         function render() {
@@ -1582,10 +1903,42 @@
                         cardEl.classList.add(hintActive ? 'hint-highlight' : 'selected');
                     }
 
+                    // Click handler
                     cardEl.onclick = (e) => {
                         e.stopPropagation();
-                        handleCardClick(col, i);
+                        if (!isDragging) {
+                            handleCardClick(col, i);
+                        }
                     };
+
+                    // Touch drag handlers
+                    cardEl.addEventListener('touchstart', (e) => {
+                        if (card.faceDown && i !== tableau[col].length - 1) return;
+                        const touch = e.touches[0];
+                        startDrag(col, i, touch.clientX, touch.clientY);
+                    }, { passive: true });
+
+                    cardEl.addEventListener('touchmove', (e) => {
+                        if (dragData) {
+                            const touch = e.touches[0];
+                            moveDrag(touch.clientX, touch.clientY);
+                            if (isDragging) e.preventDefault();
+                        }
+                    }, { passive: false });
+
+                    cardEl.addEventListener('touchend', (e) => {
+                        if (dragData) {
+                            const touch = e.changedTouches[0];
+                            endDrag(touch.clientX, touch.clientY);
+                        }
+                    });
+
+                    // Mouse drag handlers
+                    cardEl.addEventListener('mousedown', (e) => {
+                        if (card.faceDown && i !== tableau[col].length - 1) return;
+                        startDrag(col, i, e.clientX, e.clientY);
+                        e.preventDefault();
+                    });
 
                     columnEl.appendChild(cardEl);
                     currentTop += spacing[i] || 0;
@@ -1594,6 +1947,19 @@
                 tableauEl.appendChild(columnEl);
             }
         }
+
+        // Global mouse drag handlers
+        document.addEventListener('mousemove', (e) => {
+            if (dragData) {
+                moveDrag(e.clientX, e.clientY);
+            }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (dragData) {
+                endDrag(e.clientX, e.clientY);
+            }
+        });
 
         loadSettings();
         newGame();
