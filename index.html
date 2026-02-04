@@ -3207,6 +3207,35 @@
             }
         }
 
+        // Flag to prevent overlapping auto-move animations
+        let isAutoMoving = false;
+
+        // Create a flying card element for animations
+        function createFlyingCard(card, sourceRect) {
+            const flyingCard = document.createElement('div');
+            flyingCard.className = 'card-flying';
+
+            const colors = getCardFaceColors();
+            const textColor = card.color === 'red' ? colors.red : colors.black;
+
+            flyingCard.style.width = sourceRect.width + 'px';
+            flyingCard.style.height = sourceRect.height + 'px';
+            flyingCard.style.left = sourceRect.left + 'px';
+            flyingCard.style.top = sourceRect.top + 'px';
+            flyingCard.style.background = colors.bg;
+            flyingCard.style.border = `1px solid ${colors.border}`;
+            flyingCard.style.color = textColor;
+            flyingCard.style.position = 'fixed';
+            flyingCard.style.zIndex = '1500';
+            flyingCard.style.pointerEvents = 'none';
+            flyingCard.style.borderRadius = '6px';
+            flyingCard.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
+            flyingCard.style.transition = 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            flyingCard.innerHTML = renderCardContent(card);
+
+            return flyingCard;
+        }
+
         // Animation function for flying cards
         function animateCardToTarget(sourceEl, targetEl, callback) {
             if (!sourceEl || !targetEl) {
@@ -3216,9 +3245,8 @@
 
             const sourceRect = sourceEl.getBoundingClientRect();
             const targetRect = targetEl.getBoundingClientRect();
-            const card = null; // We'll get it from context
 
-            // Create flying card
+            // Create flying card from source element
             const flyingCard = document.createElement('div');
             flyingCard.className = 'card-flying';
             flyingCard.style.width = sourceRect.width + 'px';
@@ -3226,42 +3254,49 @@
             flyingCard.style.left = sourceRect.left + 'px';
             flyingCard.style.top = sourceRect.top + 'px';
             flyingCard.innerHTML = sourceEl.innerHTML;
-            flyingCard.style.cssText += sourceEl.style.cssText;
+
+            // Copy computed styles for appearance
+            const computedStyle = window.getComputedStyle(sourceEl);
+            flyingCard.style.background = computedStyle.background;
+            flyingCard.style.backgroundColor = computedStyle.backgroundColor;
+            flyingCard.style.border = computedStyle.border;
+            flyingCard.style.color = computedStyle.color;
             flyingCard.style.position = 'fixed';
             flyingCard.style.zIndex = '1500';
             flyingCard.style.pointerEvents = 'none';
             flyingCard.style.borderRadius = '6px';
-            flyingCard.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
-            flyingCard.style.transition = 'all 0.6s cubic-bezier(0.25, 0.1, 0.25, 1)';
+            flyingCard.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
+            flyingCard.style.transition = 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
 
             document.body.appendChild(flyingCard);
 
             // Hide source card
             sourceEl.style.opacity = '0';
 
-            // Trigger animation
+            // Trigger animation after a frame
             requestAnimationFrame(() => {
-                flyingCard.style.left = targetRect.left + 'px';
-                flyingCard.style.top = targetRect.top + 'px';
-                flyingCard.style.width = targetRect.width + 'px';
-                flyingCard.style.height = targetRect.height + 'px';
+                requestAnimationFrame(() => {
+                    flyingCard.style.left = targetRect.left + 'px';
+                    flyingCard.style.top = targetRect.top + 'px';
+                    flyingCard.style.width = targetRect.width + 'px';
+                    flyingCard.style.height = targetRect.height + 'px';
+                });
             });
 
             // Clean up after animation
             setTimeout(() => {
                 flyingCard.remove();
                 callback();
-            }, 600);
+            }, 450);
         }
 
         // Animated auto-move to foundation
         function tryAutoMoveToFoundation() {
-            // Disable auto-moves during tutorial, dealing, or waiting for first move
+            // Disable auto-moves during tutorial, dealing, waiting for first move, or already animating
             if (tutorialMode) return false;
             if (isDealing || waitingForFirstMove) return false;
             if (!autoMoveAces && !autoMoveFoundation) return false;
-
-            let moved = false;
+            if (isAutoMoving) return false;
 
             for (let col = 0; col < 7; col++) {
                 if (tableau[col].length === 0) continue;
@@ -3279,29 +3314,54 @@
                     }
 
                     if (shouldMove) {
-                        // Get elements for animation
-                        const columnEl = document.querySelectorAll('.column')[col];
-                        const cardEls = columnEl.querySelectorAll('.card');
-                        const sourceCardEl = cardEls[cardEls.length - 1];
-                        const targetEl = document.querySelectorAll('.foundation')[f];
+                        isAutoMoving = true;
 
-                        // Add delay for aces to make the auto-move more visible
-                        const isAce = topCard.value === 'A';
-                        const moveDelay = isAce ? 500 : 300;
+                        // Store card data before any DOM changes
+                        const cardToMove = topCard;
+                        const fromCol = col;
+                        const toFoundation = f;
 
+                        // Brief delay to let user see what's about to move
                         setTimeout(() => {
-                            animateCardToTarget(sourceCardEl, targetEl, () => {
-                                foundations[f].push(topCard);
-                                tableau[col].pop();
-                                moveHistory.push({ type: 'foundation', fromCol: col, fromFoundation: f, card: topCard });
+                            // Re-query DOM elements fresh
+                            const columnEl = document.querySelectorAll('.column')[fromCol];
+                            const cardEls = columnEl ? columnEl.querySelectorAll('.card') : [];
+                            const sourceCardEl = cardEls.length > 0 ? cardEls[cardEls.length - 1] : null;
+                            const targetEl = document.querySelectorAll('.foundation')[toFoundation];
+
+                            if (!sourceCardEl || !targetEl) {
+                                // DOM not ready, do instant move
+                                foundations[toFoundation].push(cardToMove);
+                                tableau[fromCol].pop();
+                                moveHistory.push({ type: 'foundation', fromCol: fromCol, fromFoundation: toFoundation, card: cardToMove });
                                 moveCount++;
                                 checkGameState();
                                 render();
                                 saveGameState();
-                                updateTutorialAfterMove();
-                                setTimeout(() => tryAutoMoveToFoundation(), 400);
-                            });
-                        }, moveDelay);
+                                isAutoMoving = false;
+                                setTimeout(() => tryAutoMoveToFoundation(), 200);
+                                return;
+                            }
+
+                            // Highlight card briefly before moving
+                            sourceCardEl.style.boxShadow = '0 0 0 3px #ffd700, 0 0 20px rgba(255,215,0,0.6)';
+                            sourceCardEl.style.transform = 'scale(1.05)';
+
+                            setTimeout(() => {
+                                animateCardToTarget(sourceCardEl, targetEl, () => {
+                                    foundations[toFoundation].push(cardToMove);
+                                    tableau[fromCol].pop();
+                                    moveHistory.push({ type: 'foundation', fromCol: fromCol, fromFoundation: toFoundation, card: cardToMove });
+                                    moveCount++;
+                                    checkGameState();
+                                    render();
+                                    saveGameState();
+                                    isAutoMoving = false;
+                                    // Check for more auto-moves after a brief pause
+                                    setTimeout(() => tryAutoMoveToFoundation(), 300);
+                                });
+                            }, 250); // Delay after highlight before flying
+                        }, 150); // Initial delay before highlighting
 
                         return true;
                     }
