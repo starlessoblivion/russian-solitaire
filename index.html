@@ -1156,6 +1156,7 @@
         let gameEnded = false;
         let scoreboard = [];
         let scoreboardSort = { column: 'score', ascending: false };
+        let waitingForFirstMove = false; // After dealing, wait for user's first move before auto-moving
 
         // Drag and drop state
         let isDragging = false;
@@ -1715,6 +1716,12 @@
             moveCount++;
             clearHint();
             saveGameState();
+
+            // After user's first move, enable auto-moves
+            if (waitingForFirstMove) {
+                waitingForFirstMove = false;
+                setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+            }
         }
 
         function clearHint() {
@@ -1831,6 +1838,7 @@
             moveCount = 0;
             gameStartTime = Date.now();
             gameEnded = false;
+            waitingForFirstMove = false;
 
             const totals = [1, 6, 7, 8, 9, 10, 11];
             const faceUps = [1, 5, 5, 5, 5, 5, 5];
@@ -1931,9 +1939,9 @@
                     // Animation complete
                     deckStack.remove();
                     isDealing = false;
+                    waitingForFirstMove = true; // Let user make the first move
                     render();
                     saveGameState();
-                    setTimeout(() => tryAutoMoveToFoundationAnimated(), 300);
                     return;
                 }
 
@@ -2623,6 +2631,7 @@
 
         function tryAutoMoveToFoundation() {
             if (!autoMoveAces && !autoMoveFoundation) return false;
+            if (isDealing || waitingForFirstMove) return false;
 
             let moved = false;
 
@@ -3131,8 +3140,9 @@
 
         // Animated auto-move to foundation
         function tryAutoMoveToFoundationAnimated() {
-            // Disable auto-moves during tutorial
+            // Disable auto-moves during tutorial, dealing, or waiting for first move
             if (tutorialMode) return false;
+            if (isDealing || waitingForFirstMove) return false;
             if (!autoMoveAces && !autoMoveFoundation) return false;
 
             let moved = false;
