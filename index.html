@@ -1060,6 +1060,28 @@
                 <button class="modal-btn secondary" onclick="document.getElementById('importFile').click()">Import</button>
             </div>
             <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+
+            <button class="modal-btn danger" onclick="showClearCacheWarning()" style="margin-top: 16px;">Clear All Data</button>
+        </div>
+    </div>
+
+    <!-- Clear Cache Warning Modal -->
+    <div class="modal-overlay" id="clearCacheModal">
+        <div class="modal">
+            <button class="close-modal" onclick="hideClearCacheWarning()">&times;</button>
+            <h2>⚠️ Clear All Data?</h2>
+            <p style="margin-bottom: 16px; line-height: 1.5;">This will permanently delete:</p>
+            <ul style="margin-bottom: 20px; padding-left: 20px; line-height: 1.8;">
+                <li>All game settings</li>
+                <li>Theme preferences</li>
+                <li>Entire scoreboard history</li>
+                <li>Current saved game</li>
+            </ul>
+            <p style="margin-bottom: 20px; color: #e74c3c; font-weight: bold;">This action cannot be undone!</p>
+            <div class="storage-buttons">
+                <button class="modal-btn secondary" onclick="hideClearCacheWarning()">Cancel</button>
+                <button class="modal-btn danger" onclick="clearAllData()">Delete Everything</button>
+            </div>
         </div>
     </div>
 
@@ -1420,6 +1442,48 @@
             };
             reader.readAsText(file);
             event.target.value = '';
+        }
+
+        function showClearCacheWarning() {
+            document.getElementById('clearCacheModal').classList.add('show');
+        }
+
+        function hideClearCacheWarning() {
+            document.getElementById('clearCacheModal').classList.remove('show');
+        }
+
+        function clearAllData() {
+            // Clear all localStorage keys for this game
+            localStorage.removeItem('russianSolitaireSettings');
+            localStorage.removeItem('russianSolitaireTheme');
+            localStorage.removeItem('russianSolitaireScoreboard');
+            localStorage.removeItem('russianSolitaireGameState');
+
+            // Reset in-memory state to defaults
+            oneTapMove = false;
+            autoMoveAces = false;
+            autoMoveFoundation = false;
+            currentTheme = {
+                background: 'charcoal',
+                cardBack: 'red',
+                cardFace: 'white'
+            };
+            scoreboard = [];
+
+            // Update UI checkboxes
+            document.getElementById('oneTapMove').checked = false;
+            document.getElementById('autoMoveAces').checked = false;
+            document.getElementById('autoMoveFoundation').checked = false;
+
+            // Apply default theme
+            applyTheme();
+
+            // Hide modals
+            hideClearCacheWarning();
+            toggleSettings();
+
+            // Start fresh game
+            newGame();
         }
 
         function applyTheme() {
