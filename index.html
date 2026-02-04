@@ -1720,7 +1720,7 @@
             // After user's first move, enable auto-moves
             if (waitingForFirstMove) {
                 waitingForFirstMove = false;
-                setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                setTimeout(() => tryAutoMoveToFoundation(), 100);
             }
         }
 
@@ -1862,7 +1862,7 @@
             if (skipAnimation) {
                 render();
                 saveGameState();
-                setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                setTimeout(() => tryAutoMoveToFoundation(), 100);
             } else {
                 dealCardsAnimation();
             }
@@ -2531,6 +2531,9 @@
         }
 
         function endTutorial() {
+            // Only start a new game if tutorial was actually active
+            const wasTutorialActive = tutorialMode;
+
             tutorialMode = false;
             tutorialStep = 0;
             tutorialHighlights = { cards: [], foundations: [], columns: [], targetCards: [] };
@@ -2540,8 +2543,12 @@
             document.body.classList.remove('tutorial-active');
             // Reset the next button onclick
             document.getElementById('tutorialNextBtn').onclick = nextTutorialStep;
-            // Deal a new regular hand
-            newGameWithoutEndingTutorial();
+
+            // Only deal a new game if we were actually in tutorial mode
+            // (prevents infinite recursion when newGame() calls endTutorial())
+            if (wasTutorialActive) {
+                newGameWithoutEndingTutorial();
+            }
         }
 
         function newGameWithoutEndingTutorial() {
@@ -2656,7 +2663,7 @@
                 checkGameState();
                 render();
                 saveGameState();
-                setTimeout(() => tryAutoMoveToFoundationAnimated(), 150);
+                setTimeout(() => tryAutoMoveToFoundation(), 150);
             }
 
             return moved;
@@ -2777,7 +2784,7 @@
                     saveMove({ type: 'flip', col, index });
                     render();
                     updateTutorialAfterMove();
-                    setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                    setTimeout(() => tryAutoMoveToFoundation(), 100);
                 }
                 return;
             }
@@ -2788,7 +2795,7 @@
                     executeMove(col, index, validMove);
                     render();
                     updateTutorialAfterMove();
-                    setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                    setTimeout(() => tryAutoMoveToFoundation(), 100);
                 }
                 return;
             }
@@ -2801,7 +2808,7 @@
                         executeMove(col, index, { type: 'foundation', index: f });
                         render();
                         updateTutorialAfterMove();
-                        setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                        setTimeout(() => tryAutoMoveToFoundation(), 100);
                         return;
                     }
                 }
@@ -2816,7 +2823,7 @@
                         executeMove(col, index, { type: 'tableau', index: targetCol });
                         render();
                         updateTutorialAfterMove();
-                        setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                        setTimeout(() => tryAutoMoveToFoundation(), 100);
                         return;
                     }
                 }
@@ -2851,7 +2858,7 @@
                 checkGameState();
                 render();
                 updateTutorialAfterMove();
-                setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                setTimeout(() => tryAutoMoveToFoundation(), 100);
                 return;
             }
 
@@ -2893,7 +2900,7 @@
             render();
             if (didMove) {
                 updateTutorialAfterMove();
-                setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                setTimeout(() => tryAutoMoveToFoundation(), 100);
             }
         }
 
@@ -3062,7 +3069,7 @@
                     executeMove(fromCol, fromIndex, target);
                     render();
                     updateTutorialAfterMove();
-                    setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                    setTimeout(() => tryAutoMoveToFoundation(), 100);
                 });
             } else {
                 // Tableau to tableau - instant move
@@ -3072,7 +3079,7 @@
                 tableau[target.index].push(...cards);
                 render();
                 updateTutorialAfterMove();
-                setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                setTimeout(() => tryAutoMoveToFoundation(), 100);
             }
         }
 
@@ -3124,7 +3131,7 @@
         }
 
         // Animated auto-move to foundation
-        function tryAutoMoveToFoundationAnimated() {
+        function tryAutoMoveToFoundation() {
             // Disable auto-moves during tutorial, dealing, or waiting for first move
             if (tutorialMode) return false;
             if (isDealing || waitingForFirstMove) return false;
@@ -3168,7 +3175,7 @@
                                 render();
                                 saveGameState();
                                 updateTutorialAfterMove();
-                                setTimeout(() => tryAutoMoveToFoundationAnimated(), 400);
+                                setTimeout(() => tryAutoMoveToFoundation(), 400);
                             });
                         }, moveDelay);
 
