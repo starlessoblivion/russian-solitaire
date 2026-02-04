@@ -444,7 +444,7 @@
         const MIN_FACE_DOWN_SPACING = 8;
         
         let foundations = [[], [], [], []];
-        let tableau = [[], [], [], [], [], [], [], []];
+        let tableau = [[], [], [], [], [], [], []];
         let selected = null;
         let oneTapMove = false;
         let moveHistory = [];
@@ -507,14 +507,14 @@
                 tableau[action.fromCol].push(card);
             } else if (action.type === 'tableau') {
                 // Move cards back from target column to source column
-                const cardsToMove = tableau[action.toCol].splice(action.cardCount);
+                const cardsToMove = tableau[action.toCol].splice(-action.cardCount);
                 // Restore face-down state for cards that were flipped during the move
                 if (action.wasFaceDown && cardsToMove.length === action.wasFaceDown.length) {
                     cardsToMove.forEach((card, i) => {
                         card.faceDown = action.wasFaceDown[i];
                     });
                 }
-                tableau[action.fromCol].push(...cardsToMove.reverse());
+                tableau[action.fromCol].push(...cardsToMove);
             } else if (action.type === 'flip') {
                 // Flip card back
                 tableau[action.col][action.index].faceDown = true;
@@ -570,7 +570,7 @@
             }
             
             // Face-down cards have fixed overlap
-            const faceDownSpacing = MIN_FACE_DOWN_SPACING; // 6px fixed
+            const faceDownSpacing = MIN_FACE_DOWN_SPACING; // 8px fixed
             
             // Calculate space needed for face-up cards
             const faceUpSpace = faceUpCount * CARD_HEIGHT;
@@ -602,7 +602,7 @@
         function newGame() {
             const deck = createDeck();
             foundations = [[], [], [], []];
-            tableau = [[], [], [], [], [], [], [], []];
+            tableau = [[], [], [], [], [], [], []];
             selected = null;
             moveHistory = [];
             moveCount = 0;
@@ -849,11 +849,15 @@
                 for (let targetCol = 0; targetCol < 7; targetCol++) {
                     if (targetCol === col) continue;
                     const targetTop = tableau[targetCol][tableau[targetCol].length - 1];
+
+                    // Cannot move onto a face-down card
+                    if (targetTop && targetTop.faceDown) continue;
+
                     const isEmptyTableau = !targetTop;
                     const isValidTableau = isEmptyTableau
                         ? (card.value === 'K')
                         : (card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1);
-                    
+
                     if (isValidTableau) {
                         executeMove(col, index, { type: 'tableau', index: targetCol });
                         render();
