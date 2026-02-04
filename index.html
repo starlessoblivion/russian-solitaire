@@ -15,6 +15,7 @@
             height: 100%;
             height: 100dvh;
             overflow: hidden;
+            overscroll-behavior: none;
         }
         
         body {
@@ -24,6 +25,7 @@
             padding-bottom: 65px;
             -webkit-user-select: none;
             user-select: none;
+            overscroll-behavior: none;
         }
         
         .game-container {
@@ -517,7 +519,7 @@
             const moves = findValidMoves();
             
             if (moves.length === 0) {
-                showGameOver(false);
+                checkLoseCondition();
                 return;
             }
             
@@ -667,9 +669,10 @@
             
             if (total === 52) {
                 showGameOver(true);
-                return;
             }
-            
+        }
+        
+        function checkLoseCondition() {
             const moves = findValidMoves();
             if (moves.length === 0) {
                 showGameOver(false);
@@ -752,10 +755,11 @@
         
         function handleCardClick(col, index) {
             const card = tableau[col][index];
+            const isTopCard = index === tableau[col].length - 1;
             
             // Flip face-down card
             if (card.faceDown) {
-                if (index === tableau[col].length - 1) {
+                if (isTopCard) {
                     card.faceDown = false;
                     saveMove({ type: 'flip', col, index });
                     render();
@@ -763,22 +767,17 @@
                 return;
             }
             
+            // Only top cards can be selected or moved
+            if (!isTopCard) {
+                return; // Can't select cards with cards on top
+            }
+            
             // One tap move
             if (oneTapMove) {
-                // Check if this card can be flipped
-                if (card.faceDown && index === tableau[col].length - 1) {
-                    card.faceDown = false;
-                    saveMove({ type: 'flip', col, index });
-                    render();
-                    return;
-                }
-                
-                // Try to move this card
                 const validMove = findValidMove(card);
                 if (validMove) {
                     executeMove(col, index, validMove);
                     render();
-                    return;
                 }
                 return;
             }
@@ -796,6 +795,14 @@
             if (!selected || oneTapMove) return;
             
             const card = tableau[selected.col][selected.index];
+            
+            // Only top cards can be moved
+            if (selected.index !== tableau[selected.col].length - 1) {
+                selected = null;
+                render();
+                return;
+            }
+            
             const foundation = foundations[fIndex];
             const top = foundation[foundation.length - 1];
             
@@ -837,6 +844,14 @@
         
         function handleTableauClick(targetCol) {
             if (!selected || oneTapMove) return;
+            
+            // Only top cards can be moved
+            if (selected.index !== tableau[selected.col].length - 1) {
+                selected = null;
+                render();
+                return;
+            }
+            
             if (selected.col === targetCol) {
                 selected = null;
                 render();
