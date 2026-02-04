@@ -2690,9 +2690,14 @@
         }
 
         function updateTutorialAfterMove() {
-            if (tutorialMode && tutorialStep > 0) {
+            if (tutorialMode && tutorialStep > 0 && !tutorialSettingPrompt) {
                 // Small delay to let animations finish
-                setTimeout(() => showTutorialStep(), 150);
+                setTimeout(() => {
+                    // Double-check we're not showing a settings prompt
+                    if (!tutorialSettingPrompt) {
+                        showTutorialStep();
+                    }
+                }, 150);
             }
         }
 
@@ -2893,72 +2898,6 @@
                     showGameOver(true);
                 }
             }
-        }
-
-        function tryAutoMoveToFoundation() {
-            if (!autoMoveAces && !autoMoveFoundation) {
-                // Even if auto-move is disabled, check for auto-finish
-                checkAndTriggerAutoFinish();
-                return false;
-            }
-            if (isDealing || waitingForFirstMove) return false;
-
-            let moved = false;
-
-            for (let col = 0; col < 7; col++) {
-                if (tableau[col].length === 0) continue;
-                const topCard = tableau[col][tableau[col].length - 1];
-                if (topCard.faceDown) continue;
-
-                for (let f = 0; f < 4; f++) {
-                    const foundationTop = foundations[f][foundations[f].length - 1];
-
-                    if (!foundationTop && topCard.value === 'A') {
-                        if (autoMoveAces) {
-                            foundations[f].push(topCard);
-                            tableau[col].pop();
-                            moveHistory.push({ type: 'foundation', fromCol: col, fromFoundation: f, card: topCard });
-                            moveCount++;
-                            moved = true;
-                            break;
-                        }
-                    } else if (foundationTop && topCard.suit === foundationTop.suit && topCard.valueNum === foundationTop.valueNum + 1) {
-                        if (autoMoveFoundation) {
-                            foundations[f].push(topCard);
-                            tableau[col].pop();
-                            moveHistory.push({ type: 'foundation', fromCol: col, fromFoundation: f, card: topCard });
-                            moveCount++;
-                            moved = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (moved) break;
-            }
-
-            if (moved) {
-                checkGameState();
-                render();
-                saveGameState();
-
-                // Update tutorial after auto-move
-                updateTutorialAfterMove();
-
-                // Check if auto-finish can be triggered
-                if (checkAndTriggerAutoFinish()) {
-                    return true;
-                }
-
-                setTimeout(() => tryAutoMoveToFoundation(), 150);
-            } else {
-                // No more auto-moves, check if auto-finish can be triggered
-                checkAndTriggerAutoFinish();
-                // Update tutorial even when no moves (to refresh hints)
-                updateTutorialAfterMove();
-            }
-
-            return moved;
         }
 
         // Auto-finish game feature
@@ -3684,7 +3623,12 @@
         function tryAutoMoveToFoundation() {
             // Disable auto-moves during dealing, waiting for first move, or already animating
             if (isDealing || waitingForFirstMove) return false;
-            if (!autoMoveAces && !autoMoveFoundation) return false;
+            if (!autoMoveAces && !autoMoveFoundation) {
+                // Even if auto-move is disabled, check for auto-finish
+                checkAndTriggerAutoFinish();
+                updateTutorialAfterMove();
+                return false;
+            }
             if (isAutoMoving) return false;
 
             for (let col = 0; col < 7; col++) {
@@ -3731,8 +3675,11 @@
                                 checkGameState();
                                 render();
                                 saveGameState();
+                                updateTutorialAfterMove();
                                 isAutoMoving = false;
-                                setTimeout(() => tryAutoMoveToFoundation(), 200);
+                                if (!checkAndTriggerAutoFinish()) {
+                                    setTimeout(() => tryAutoMoveToFoundation(), 200);
+                                }
                                 return;
                             }
 
@@ -3749,9 +3696,12 @@
                                     checkGameState();
                                     render();
                                     saveGameState();
+                                    updateTutorialAfterMove();
                                     isAutoMoving = false;
-                                    // Check for more auto-moves after a brief pause
-                                    setTimeout(() => tryAutoMoveToFoundation(), 300);
+                                    // Check for auto-finish, then more auto-moves
+                                    if (!checkAndTriggerAutoFinish()) {
+                                        setTimeout(() => tryAutoMoveToFoundation(), 300);
+                                    }
                                 });
                             }, 250); // Delay after highlight before flying
                         }, 150); // Initial delay before highlighting
@@ -3761,6 +3711,9 @@
                 }
             }
 
+            // No moves found, update tutorial and check auto-finish
+            checkAndTriggerAutoFinish();
+            updateTutorialAfterMove();
             return false;
         }
 
