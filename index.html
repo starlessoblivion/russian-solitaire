@@ -302,7 +302,7 @@
             position: fixed;
             z-index: 1500;
             pointer-events: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .column.valid-drop-target {
@@ -1774,7 +1774,7 @@
             flyingCard.style.pointerEvents = 'none';
             flyingCard.style.borderRadius = '6px';
             flyingCard.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
-            flyingCard.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            flyingCard.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
 
             document.body.appendChild(flyingCard);
 
@@ -1793,7 +1793,7 @@
             setTimeout(() => {
                 flyingCard.remove();
                 callback();
-            }, 300);
+            }, 400);
         }
 
         // Animated auto-move to foundation
@@ -1824,15 +1824,21 @@
                         const sourceCardEl = cardEls[cardEls.length - 1];
                         const targetEl = document.querySelectorAll('.foundation')[f];
 
-                        animateCardToTarget(sourceCardEl, targetEl, () => {
-                            foundations[f].push(topCard);
-                            tableau[col].pop();
-                            moveHistory.push({ type: 'foundation', fromCol: col, fromFoundation: f, card: topCard });
-                            moveCount++;
-                            checkGameState();
-                            render();
-                            setTimeout(() => tryAutoMoveToFoundationAnimated(), 150);
-                        });
+                        // Add delay for aces to make the auto-move more visible
+                        const isAce = topCard.value === 'A';
+                        const moveDelay = isAce ? 250 : 0;
+
+                        setTimeout(() => {
+                            animateCardToTarget(sourceCardEl, targetEl, () => {
+                                foundations[f].push(topCard);
+                                tableau[col].pop();
+                                moveHistory.push({ type: 'foundation', fromCol: col, fromFoundation: f, card: topCard });
+                                moveCount++;
+                                checkGameState();
+                                render();
+                                setTimeout(() => tryAutoMoveToFoundationAnimated(), 200);
+                            });
+                        }, moveDelay);
 
                         return true;
                     }
