@@ -557,6 +557,15 @@
             const moves = [];
             
             for (let col = 0; col < 7; col++) {
+                // Check if there's a face-down card that can be flipped
+                if (tableau[col].length > 0) {
+                    const topCard = tableau[col][tableau[col].length - 1];
+                    if (topCard.faceDown) {
+                        // Flipping a card is a valid move
+                        moves.push({ type: 'flip', cardCol: col });
+                    }
+                }
+                
                 if (tableau[col].length === 0) continue;
                 
                 const card = tableau[col][tableau[col].length - 1];
@@ -693,10 +702,20 @@
             
             // One tap move
             if (oneTapMove) {
+                // Check if this card can be flipped
+                if (card.faceDown && index === tableau[col].length - 1) {
+                    card.faceDown = false;
+                    saveMove({ type: 'flip', col, index });
+                    render();
+                    return;
+                }
+                
+                // Try to move this card
                 const validMove = findValidMove(card);
                 if (validMove) {
                     executeMove(col, index, validMove);
                     render();
+                    return;
                 }
                 return;
             }
