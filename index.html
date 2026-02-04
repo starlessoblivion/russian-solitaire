@@ -22,7 +22,7 @@
         }
         
         .game-container {
-            max-width: 850px;
+            max-width: 900px;
             margin: 0 auto;
         }
         
@@ -56,73 +56,79 @@
         .foundations {
             display: flex;
             justify-content: space-around;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             gap: 4px;
         }
         
         .foundation {
-            width: 50px;
-            height: 70px;
+            width: 55px;
+            height: 75px;
             background: rgba(255,255,255,0.1);
-            border: 2px dashed rgba(255,255,255,0.4);
+            border: 2px dashed rgba(255,255,255,0.5);
             border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.7rem;
-            color: rgba(255,255,255,0.5);
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
         }
         
         .foundation.drop-target {
             background: rgba(255,215,0,0.3);
             border-color: #ffd700;
+            border-style: solid;
         }
         
         .tableau {
             display: flex;
             justify-content: space-between;
-            gap: 2px;
+            gap: 3px;
+            padding: 5px;
         }
         
         .column {
-            width: 70px;
-            min-height: 250px;
+            width: 75px;
+            min-height: 280px;
             position: relative;
+            cursor: pointer;
+            border-radius: 4px;
         }
         
         .column.drop-target {
-            background: rgba(255,215,0,0.2);
-            border-radius: 4px;
+            background: rgba(255,215,0,0.25);
         }
         
         .card {
-            width: 62px;
-            height: 40px;
+            width: 68px;
+            height: 45px;
             background: #fff;
-            border-radius: 4px;
+            border-radius: 5px;
             position: absolute;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.4);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.75rem;
+            font-size: 0.85rem;
             font-weight: bold;
             cursor: pointer;
-            transition: transform 0.1s, box-shadow 0.1s;
+            border: 2px solid #fff;
+            transition: transform 0.1s;
         }
         
         .card.face-down {
-            background: linear-gradient(135deg, #1a4a8a, #2a6aaa);
-            border: 2px solid #3a7aba;
+            background: linear-gradient(135deg, #1a4a8a 25%, #2a5a9a 25%, #2a5a9a 50%, #1a4a8a 50%, #1a4a8a 75%, #2a6aaa 75%);
+            background-size: 10px 10px;
+            border: 2px solid #fff;
         }
         
         .card.red { color: #d40000; }
         .card.black { color: #000; }
         
-        .card .suit { font-size: 0.6rem; margin-left: 2px; }
+        .card .suit { font-size: 0.7rem; margin-left: 2px; }
         
         .card.selected {
-            box-shadow: 0 0 0 3px #ffd700, 0 2px 6px rgba(255,215,0,0.5);
+            box-shadow: 0 0 0 3px #ffd700, 0 2px 8px rgba(255,215,0,0.6);
             transform: scale(1.05);
         }
         
@@ -209,7 +215,6 @@
                 
                 for (let i = 0; i < total; i++) {
                     let card = deck[cardIndex++];
-                    // Last 'faceUpCount' cards are face-up
                     card.faceDown = (i < faceDownCount);
                     tableau[col].push(card);
                 }
@@ -248,9 +253,9 @@
                 
                 tableau[col].forEach((card, i) => {
                     const cardEl = document.createElement('div');
-                    const isTop = (i === tableau[col].length - 1);
                     cardEl.className = 'card ' + (card.faceDown ? 'face-down' : card.color);
-                    cardEl.style.top = (i * 15) + 'px';
+                    // More spacing so all face-up cards are visible
+                    cardEl.style.top = (i * 25) + 'px';
                     cardEl.style.zIndex = i;
                     
                     if (!card.faceDown) {
@@ -292,15 +297,29 @@
             const foundation = foundations[fIndex];
             const top = foundation[foundation.length - 1];
             
-            const isValid = (!top && card.value === 'A' && suits[fIndex] === card.suit) ||
-                (top && card.suit === top.suit && card.valueNum === top.valueNum + 1);
-            
-            if (isValid) {
-                foundations[fIndex].push(card);
-                tableau[selected.col].splice(selected.index, 1);
-                checkWin();
+            // Check if foundation is empty - accepts Ace of matching suit
+            if (!top) {
+                if (card.value === 'A' && suits[fIndex] === card.suit) {
+                    foundations[fIndex].push(card);
+                    tableau[selected.col].splice(selected.index, 1);
+                    selected = null;
+                    checkWin();
+                    render();
+                    return;
+                }
+            } else {
+                // Foundation has cards - build up by suit
+                if (card.suit === top.suit && card.valueNum === top.valueNum + 1) {
+                    foundations[fIndex].push(card);
+                    tableau[selected.col].splice(selected.index, 1);
+                    selected = null;
+                    checkWin();
+                    render();
+                    return;
+                }
             }
             
+            // Invalid move - show feedback
             selected = null;
             render();
         }
@@ -317,12 +336,17 @@
             const targetColCards = tableau[targetCol];
             const targetTop = targetColCards[targetColCards.length - 1];
             
-            const isValid = (!targetTop && card.value === 'K') ||
-                (targetTop && card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1);
-            
-            if (isValid) {
-                const cards = tableau[selected.col].splice(selected.index);
-                tableau[targetCol].push(...cards);
+            // Only Kings in empty column OR build down by same suit
+            if (!targetTop) {
+                if (card.value === 'K') {
+                    const cards = tableau[selected.col].splice(selected.index);
+                    tableau[targetCol].push(...cards);
+                }
+            } else {
+                if (card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1) {
+                    const cards = tableau[selected.col].splice(selected.index);
+                    tableau[targetCol].push(...cards);
+                }
             }
             
             selected = null;
