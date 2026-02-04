@@ -1305,6 +1305,7 @@
                 gameStartTime: gameStartTime,
                 tutorialMode: tutorialMode,
                 tutorialStep: tutorialStep,
+                score: calculateScore(),
                 savedAt: Date.now()
             };
             localStorage.setItem('russianSolitaireGameState', JSON.stringify(state));
