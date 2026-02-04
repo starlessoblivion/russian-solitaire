@@ -441,7 +441,7 @@
         const suits = ['♠', '♥', '♦', '♣'];
         const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
         const CARD_HEIGHT = 45;
-        const MIN_FACE_DOWN_SPACING = 6;
+        const MIN_FACE_DOWN_SPACING = 8;
         
         let foundations = [[], [], [], []];
         let tableau = [[], [], [], [], [], [], [], []];
@@ -556,43 +556,47 @@
             const tableauEl = document.getElementById('tableau');
             const availableHeight = tableauEl.clientHeight - 10;
             
+            // Count face-down and face-up cards
             let faceDownCount = 0;
             let faceUpCount = 0;
             
-            for (let i = cards.length - 1; i >= 0; i--) {
+            for (let i = 0; i < cards.length; i++) {
                 if (cards[i].faceDown) {
                     faceDownCount++;
                 } else {
-                    faceUpCount = i + 1;
+                    faceUpCount = cards.length - i;
                     break;
                 }
             }
             
-            if (faceUpCount === 0) {
-                return cards.map(() => MIN_FACE_DOWN_SPACING);
+            // Face-down cards have fixed overlap
+            const faceDownSpacing = MIN_FACE_DOWN_SPACING; // 6px fixed
+            
+            // Calculate space needed for face-up cards
+            const faceUpSpace = faceUpCount * CARD_HEIGHT;
+            
+            // Total space needed for face-down + face-up
+            const totalNeeded = (faceDownCount * faceDownSpacing) + faceUpSpace;
+            
+            if (totalNeeded <= availableHeight) {
+                // Fits - face-up cards get full height, face-down get fixed overlap
+                return cards.map(card => card.faceDown ? faceDownSpacing : CARD_HEIGHT);
             }
             
-            const idealSpacing = cards.map(card => 
-                card.faceDown ? Math.max(MIN_FACE_DOWN_SPACING, CARD_HEIGHT * 0.5) : CARD_HEIGHT
-            );
-            const idealTotal = idealSpacing.reduce((a, b) => a + b, 0);
+            // Doesn't fit - compress face-up cards to fit, keep face-down overlap fixed
+            const spaceForFaceUp = availableHeight - (faceDownCount * faceDownSpacing);
             
-            if (idealTotal <= availableHeight) {
-                return idealSpacing;
+            if (spaceForFaceUp <= 0) {
+                // Even compressed face-up doesn't fit - scale everything
+                const scale = availableHeight / totalNeeded;
+                return cards.map(card => 
+                    card.faceDown ? faceDownSpacing * scale : CARD_HEIGHT * scale
+                );
             }
             
-            const totalSpacing = availableHeight;
-            const faceUpSpace = faceUpCount * (CARD_HEIGHT * 0.85);
-            const remainingSpace = totalSpacing - faceUpSpace;
+            const faceUpCompressed = spaceForFaceUp / faceUpCount;
             
-            if (remainingSpace <= 0) {
-                const scale = availableHeight / idealTotal;
-                return idealSpacing.map(s => Math.max(MIN_FACE_DOWN_SPACING, s * scale));
-            }
-            
-            const faceDownSpacing = Math.max(MIN_FACE_DOWN_SPACING, remainingSpace / faceDownCount);
-            
-            return cards.map(card => card.faceDown ? faceDownSpacing : CARD_HEIGHT * 0.85);
+            return cards.map(card => card.faceDown ? faceDownSpacing : Math.max(CARD_HEIGHT * 0.7, faceUpCompressed));
         }
         
         function newGame() {
