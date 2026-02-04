@@ -943,63 +943,45 @@
         let tutorialStep = 0;
         let tutorialHighlights = { cards: [], foundations: [], columns: [] };
 
-        // Tutorial steps definition
-        const tutorialSteps = [
-            {
+        // Dynamic tutorial help messages
+        const tutorialMessages = {
+            welcome: {
                 title: "Welcome to Russian Solitaire!",
-                text: "This tutorial will teach you the rules. The goal is to move all cards to the four foundation piles at the top, sorted by suit from Ace to King.",
-                action: "info",
-                nextButton: true
+                text: "Goal: Move all cards to the 4 foundation piles at the top, sorted by suit from Ace to King. You can drag cards, double-tap to auto-move, or tap then tap a destination."
             },
-            {
-                title: "How to Move Cards",
-                text: "You can move cards 3 ways: (1) Drag and drop, (2) Tap a card then tap where to move it, or (3) Enable 'One Tap Move' in settings to auto-move with a single tap.",
-                action: "info",
-                nextButton: true
+            ace: {
+                title: "Move Ace to Foundation",
+                text: "You have an Ace available! Aces start the foundation piles. Move the highlighted Ace to its matching foundation at the top."
             },
-            {
-                title: "Flip Face-Down Cards",
-                text: "When a face-down card is on top of a column, tap it to flip it face-up. Use the Hint button (💡) to find a face-down card to flip!",
-                action: "info",
-                nextButton: true
+            foundation: {
+                title: "Build on Foundation",
+                text: "You can add to a foundation! Foundations build UP by suit (A, 2, 3...). Move the highlighted card to continue building."
             },
-            {
-                title: "Move Aces to Foundation",
-                text: "Aces start each foundation pile. Find an Ace and move it to its matching foundation at the top. Drag it, double-tap it, or tap then tap the foundation.",
-                action: "info",
-                nextButton: true
+            tableau: {
+                title: "Move Between Columns",
+                text: "You can move cards in the tableau! Cards stack DOWN by SAME SUIT. Move the highlighted card onto a card one value higher of the same suit."
             },
-            {
-                title: "Build on Foundations",
-                text: "After placing an Ace, add cards of the SAME SUIT in ascending order (A, 2, 3, 4...). Each foundation builds one suit from Ace to King.",
-                action: "info",
-                nextButton: true
+            king: {
+                title: "King to Empty Column",
+                text: "You have a King and an empty column! Only Kings can go in empty columns. Move the highlighted King to create more space."
             },
-            {
-                title: "Move Cards Between Columns",
-                text: "In the tableau, move a card onto another card of the SAME SUIT that is exactly ONE VALUE HIGHER. Example: 5♠ can go on 6♠.",
-                action: "info",
-                nextButton: true
+            flip: {
+                title: "Flip Face-Down Card",
+                text: "There's a face-down card on top of a column. Tap it to flip it face-up and reveal what's underneath!"
             },
-            {
-                title: "Moving Stacks",
-                text: "When you move a card, ALL cards on top of it move together as a stack. This is key to uncovering hidden cards beneath!",
-                action: "info",
-                nextButton: true
+            stack: {
+                title: "Move a Stack",
+                text: "You can move a stack of cards! When you move a card, all cards on top move with it. This helps uncover hidden cards."
             },
-            {
-                title: "Kings to Empty Columns",
-                text: "Only Kings can be moved to empty columns. Creating empty columns gives you space to reorganize your cards.",
-                action: "info",
-                nextButton: true
+            noMoves: {
+                title: "No Moves Available",
+                text: "There are no valid moves left. This game cannot be won. Press 'Skip Tutorial' to start a new game."
             },
-            {
-                title: "Now Try It!",
-                text: "This hand has a high chance of winning. Use the Hint button (💡) when stuck. Try to move all cards to the foundations. Good luck!",
-                action: "freeplay",
-                nextButton: true
+            won: {
+                title: "Congratulations!",
+                text: "You've moved all cards to the foundations! You've mastered the basics. Press 'Skip Tutorial' to play a regular game."
             }
-        ];
+        };
 
         // Theme configuration
         const themes = {
@@ -1599,11 +1581,7 @@
         }
 
         function showTutorialStep() {
-            const step = tutorialSteps[tutorialStep];
-            if (!step) {
-                endTutorial();
-                return;
-            }
+            if (!tutorialMode) return;
 
             const dialogue = document.getElementById('tutorialDialogue');
             const stepEl = document.getElementById('tutorialStep');
@@ -1611,42 +1589,181 @@
             const textEl = document.getElementById('tutorialText');
             const nextBtn = document.getElementById('tutorialNextBtn');
 
-            stepEl.textContent = `Step ${tutorialStep + 1} of ${tutorialSteps.length}`;
-            titleEl.textContent = step.title;
-            textEl.textContent = step.text;
-
-            nextBtn.style.display = step.nextButton ? 'block' : 'none';
-
-            dialogue.classList.add('show');
-
-            // Set up highlights
+            // Reset highlights
             tutorialHighlights = { cards: [], foundations: [], columns: [] };
 
-            if (step.highlightCol !== undefined) {
-                const col = step.highlightCol;
-                if (tableau[col].length > 0) {
-                    const index = step.highlightTop ? tableau[col].length - 1 : (step.highlightIndex || 0);
-                    tutorialHighlights.cards.push({ col: col, index: index });
-                }
-            }
-            if (step.targetFoundation !== undefined) {
-                tutorialHighlights.foundations.push(step.targetFoundation);
-            }
-            if (step.targetCol !== undefined) {
-                tutorialHighlights.columns.push(step.targetCol);
+            // Check if game is won
+            const totalInFoundations = foundations.reduce((sum, f) => sum + f.length, 0);
+            if (totalInFoundations === 52) {
+                stepEl.textContent = "Tutorial Complete!";
+                titleEl.textContent = tutorialMessages.won.title;
+                textEl.textContent = tutorialMessages.won.text;
+                nextBtn.style.display = 'none';
+                dialogue.classList.add('show');
+                render();
+                return;
             }
 
+            // Analyze board for available moves (prioritized order)
+            const analysis = analyzeBoardForTutorial();
+
+            if (tutorialStep === 0) {
+                // First step: show welcome
+                stepEl.textContent = "Getting Started";
+                titleEl.textContent = tutorialMessages.welcome.title;
+                textEl.textContent = tutorialMessages.welcome.text;
+                nextBtn.textContent = "Got it!";
+                nextBtn.style.display = 'block';
+            } else if (analysis.aces.length > 0) {
+                // Prioritize aces
+                const move = analysis.aces[0];
+                stepEl.textContent = "Suggested Move";
+                titleEl.textContent = tutorialMessages.ace.title;
+                textEl.textContent = tutorialMessages.ace.text;
+                tutorialHighlights.cards.push({ col: move.col, index: move.index });
+                tutorialHighlights.foundations.push(move.targetFoundation);
+                nextBtn.style.display = 'none';
+            } else if (analysis.foundations.length > 0) {
+                // Foundation builds
+                const move = analysis.foundations[0];
+                stepEl.textContent = "Suggested Move";
+                titleEl.textContent = tutorialMessages.foundation.title;
+                textEl.textContent = `Move the ${move.card.value}${move.card.suit} to the ${move.card.suit} foundation.`;
+                tutorialHighlights.cards.push({ col: move.col, index: move.index });
+                tutorialHighlights.foundations.push(move.targetFoundation);
+                nextBtn.style.display = 'none';
+            } else if (analysis.flips.length > 0) {
+                // Flip face-down cards
+                const move = analysis.flips[0];
+                stepEl.textContent = "Suggested Move";
+                titleEl.textContent = tutorialMessages.flip.title;
+                textEl.textContent = tutorialMessages.flip.text;
+                tutorialHighlights.cards.push({ col: move.col, index: move.index });
+                nextBtn.style.display = 'none';
+            } else if (analysis.kings.length > 0) {
+                // King to empty column
+                const move = analysis.kings[0];
+                stepEl.textContent = "Suggested Move";
+                titleEl.textContent = tutorialMessages.king.title;
+                textEl.textContent = tutorialMessages.king.text;
+                tutorialHighlights.cards.push({ col: move.col, index: move.index });
+                tutorialHighlights.columns.push(move.targetCol);
+                nextBtn.style.display = 'none';
+            } else if (analysis.tableauStacks.length > 0) {
+                // Stack moves (moving multiple cards)
+                const move = analysis.tableauStacks[0];
+                stepEl.textContent = "Suggested Move";
+                titleEl.textContent = tutorialMessages.stack.title;
+                const stackSize = tableau[move.col].length - move.index;
+                textEl.textContent = `Move ${stackSize} cards starting with ${move.card.value}${move.card.suit} onto the ${move.targetCard.value}${move.targetCard.suit}.`;
+                tutorialHighlights.cards.push({ col: move.col, index: move.index });
+                tutorialHighlights.columns.push(move.targetCol);
+                nextBtn.style.display = 'none';
+            } else if (analysis.tableau.length > 0) {
+                // Single card tableau moves
+                const move = analysis.tableau[0];
+                stepEl.textContent = "Suggested Move";
+                titleEl.textContent = tutorialMessages.tableau.title;
+                textEl.textContent = `Move the ${move.card.value}${move.card.suit} onto the ${move.targetCard.value}${move.targetCard.suit}.`;
+                tutorialHighlights.cards.push({ col: move.col, index: move.index });
+                tutorialHighlights.columns.push(move.targetCol);
+                nextBtn.style.display = 'none';
+            } else {
+                // No moves available
+                stepEl.textContent = "Game Over";
+                titleEl.textContent = tutorialMessages.noMoves.title;
+                textEl.textContent = tutorialMessages.noMoves.text;
+                nextBtn.style.display = 'none';
+            }
+
+            dialogue.classList.add('show');
             render();
+        }
+
+        function analyzeBoardForTutorial() {
+            const analysis = {
+                aces: [],
+                foundations: [],
+                flips: [],
+                kings: [],
+                tableau: [],
+                tableauStacks: []
+            };
+
+            for (let col = 0; col < 7; col++) {
+                if (tableau[col].length === 0) continue;
+
+                const topIndex = tableau[col].length - 1;
+                const topCard = tableau[col][topIndex];
+
+                // Check for flippable face-down cards
+                if (topCard.faceDown) {
+                    analysis.flips.push({ col, index: topIndex });
+                    continue;
+                }
+
+                // Check each face-up card in the column
+                for (let i = 0; i < tableau[col].length; i++) {
+                    const card = tableau[col][i];
+                    if (card.faceDown) continue;
+
+                    const isTopCard = (i === topIndex);
+                    const stackSize = tableau[col].length - i;
+
+                    // Check for aces (top card only)
+                    if (isTopCard && card.value === 'A') {
+                        for (let f = 0; f < 4; f++) {
+                            if (foundations[f].length === 0 && card.suitIndex === f) {
+                                analysis.aces.push({ col, index: i, card, targetFoundation: f });
+                            }
+                        }
+                    }
+
+                    // Check for foundation builds (top card only)
+                    if (isTopCard && card.value !== 'A') {
+                        for (let f = 0; f < 4; f++) {
+                            const fTop = foundations[f][foundations[f].length - 1];
+                            if (fTop && card.suit === fTop.suit && card.valueNum === fTop.valueNum + 1) {
+                                analysis.foundations.push({ col, index: i, card, targetFoundation: f });
+                            }
+                        }
+                    }
+
+                    // Check for tableau moves
+                    for (let targetCol = 0; targetCol < 7; targetCol++) {
+                        if (targetCol === col) continue;
+
+                        const targetTop = tableau[targetCol][tableau[targetCol].length - 1];
+
+                        // King to empty column (skip if already at bottom)
+                        if (!targetTop && card.value === 'K' && i > 0) {
+                            analysis.kings.push({ col, index: i, card, targetCol });
+                        }
+
+                        // Card onto another card
+                        if (targetTop && !targetTop.faceDown && card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1) {
+                            if (stackSize > 1) {
+                                analysis.tableauStacks.push({ col, index: i, card, targetCol, targetCard: targetTop });
+                            } else {
+                                analysis.tableau.push({ col, index: i, card, targetCol, targetCard: targetTop });
+                            }
+                        }
+                    }
+                }
+            }
+
+            return analysis;
         }
 
         function nextTutorialStep() {
             tutorialStep++;
-            if (tutorialStep >= tutorialSteps.length) {
-                // Switch to freeplay mode but keep tutorial dialogue
-                tutorialMode = false;
-                document.getElementById('tutorialDialogue').classList.remove('show');
-            } else {
-                showTutorialStep();
+            showTutorialStep();
+        }
+
+        function updateTutorialAfterMove() {
+            if (tutorialMode && tutorialStep > 0) {
+                // Small delay to let animations finish
+                setTimeout(() => showTutorialStep(), 150);
             }
         }
 
@@ -1692,8 +1809,10 @@
         }
 
         function checkTutorialProgress(action, col, index, targetCol, targetFoundation) {
-            // Tutorial is now informational - user clicks Next to progress
-            // This function is kept for compatibility but doesn't auto-advance
+            // Update tutorial dialogue after each move
+            if (tutorialMode) {
+                updateTutorialAfterMove();
+            }
             return false;
         }
 
@@ -2287,6 +2406,7 @@
                                 moveCount++;
                                 checkGameState();
                                 render();
+                                updateTutorialAfterMove();
                                 setTimeout(() => tryAutoMoveToFoundationAnimated(), 400);
                             });
                         }, moveDelay);
