@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Russian Solitaire</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Lora:wght@700&family=Merriweather:wght@700&family=Playfair+Display:wght@700&family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-color: #1a5f3c;
@@ -16,7 +13,6 @@
             --card-black: #000000;
             --card-back-bg: linear-gradient(135deg, #1a4a8a 25%, #2a5a9a 25%, #2a5a9a 50%, #1a4a8a 50%, #1a4a8a 75%, #2a6aaa 75%);
             --card-back-size: 8px 8px;
-            --card-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         * {
@@ -136,7 +132,6 @@
             font-weight: bold;
             cursor: pointer;
             border: 1px solid var(--card-face-border);
-            font-family: var(--card-font);
             transition: background 0.2s ease, border-color 0.2s ease;
         }
 
@@ -190,7 +185,6 @@
             font-size: 0.55rem;
             font-weight: bold;
             border: 1px solid #ddd;
-            font-family: var(--card-font);
         }
 
         .foundation-card.red { color: var(--card-red); }
@@ -426,14 +420,7 @@
         }
 
         .theme-option.card-face {
-            color: #000;
             font-size: 0.7rem;
-        }
-
-        .theme-option.font-option {
-            background: #333;
-            color: #fff;
-            font-size: 0.8rem;
         }
 
         /* Win/Lose Modal */
@@ -529,9 +516,6 @@
             <h3>Card Face</h3>
             <div class="theme-options" id="cardFaceOptions"></div>
 
-            <h3>Card Font</h3>
-            <div class="theme-options" id="fontOptions"></div>
-
             <button class="modal-btn" onclick="toggleThemes()">Done</button>
         </div>
     </div>
@@ -582,32 +566,15 @@
                 { id: 'dots', name: 'Dots', bg: 'radial-gradient(circle, #3a6aaa 2px, #1a4a8a 2px)', size: '10px 10px' }
             ],
             cardFaces: [
-                { id: 'classic-white', name: 'Classic', bg: '#ffffff', border: '#ffffff', red: '#d40000', black: '#000000' },
-                { id: 'cream', name: 'Cream', bg: '#f5f0e1', border: '#e8dcc8', red: '#b32d00', black: '#1a1a1a' },
-                { id: 'ivory', name: 'Ivory', bg: '#fffff0', border: '#f0f0e0', red: '#cc0000', black: '#000000' },
-                { id: 'paper', name: 'Paper', bg: '#faf8f5', border: '#e5e0d5', red: '#c41e3a', black: '#2c2c2c' },
-                { id: 'mint', name: 'Mint', bg: '#f0fff0', border: '#d0efd0', red: '#dc143c', black: '#004d00' },
-                { id: 'lavender', name: 'Lavender', bg: '#f8f0ff', border: '#e8d8f8', red: '#8b0000', black: '#2f0f3f' },
-                { id: 'peach', name: 'Peach', bg: '#fff5ee', border: '#ffe4d4', red: '#b22222', black: '#3d2b1f' },
-                { id: 'sky', name: 'Sky', bg: '#f0f8ff', border: '#d4e8f8', red: '#b22222', black: '#00008b' }
-            ],
-            fonts: [
-                { id: 'system', name: 'System', family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' },
-                { id: 'serif', name: 'Serif', family: 'Georgia, "Times New Roman", serif' },
-                { id: 'playfair', name: 'Elegant', family: '"Playfair Display", Georgia, serif' },
-                { id: 'cinzel', name: 'Classic', family: '"Cinzel", Georgia, serif' },
-                { id: 'merriweather', name: 'Modern', family: '"Merriweather", Georgia, serif' },
-                { id: 'lora', name: 'Lora', family: '"Lora", Georgia, serif' },
-                { id: 'roboto-slab', name: 'Slab', family: '"Roboto Slab", Georgia, serif' },
-                { id: 'monospace', name: 'Mono', family: '"SF Mono", "Courier New", monospace' }
+                { id: 'white', name: 'White', bg: '#ffffff', border: '#ffffff', red: '#d40000', black: '#000000' },
+                { id: 'black', name: 'Black', bg: '#1a1a1a', border: '#333333', red: '#ff4444', black: '#ffffff' }
             ]
         };
 
         let currentTheme = {
             background: 'classic-green',
             cardBack: 'classic-blue',
-            cardFace: 'classic-white',
-            font: 'system'
+            cardFace: 'white'
         };
 
         function loadSettings() {
@@ -660,10 +627,6 @@
                 root.style.setProperty('--card-black', cardFace.black);
             }
 
-            // Apply font
-            const font = themeOptions.fonts.find(f => f.id === currentTheme.font);
-            if (font) root.style.setProperty('--card-font', font.family);
-
             renderThemeOptions();
         }
 
@@ -702,17 +665,6 @@
                      onclick="selectTheme('cardFace', '${cf.id}')"
                      title="${cf.name}">
                     A♥
-                </div>
-            `).join('');
-
-            // Font options
-            const fontContainer = document.getElementById('fontOptions');
-            fontContainer.innerHTML = themeOptions.fonts.map(f => `
-                <div class="theme-option font-option ${currentTheme.font === f.id ? 'selected' : ''}"
-                     style="font-family: ${f.family};"
-                     onclick="selectTheme('font', '${f.id}')"
-                     title="${f.name}">
-                    Aa
                 </div>
             `).join('');
         }
