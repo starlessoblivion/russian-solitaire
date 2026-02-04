@@ -796,11 +796,10 @@
             color: #000;
         }
 
-        /* Blue highlight for selected/hint card (source) */
+        /* Blue highlight for selected/hint card (source) - stays in stack position */
         .card.tutorial-highlight {
             box-shadow: 0 0 0 3px #4a90d9, 0 0 15px rgba(74, 144, 217, 0.7);
             animation: tutorialPulseBlue 1.2s infinite;
-            z-index: 50 !important;
         }
 
         @keyframes tutorialPulseBlue {
@@ -812,11 +811,10 @@
             }
         }
 
-        /* Green highlight for destination (target card or foundation) */
+        /* Green highlight for destination (target card or foundation) - stays in stack position */
         .card.tutorial-target {
             box-shadow: 0 0 0 3px #4CAF50, 0 0 15px rgba(76, 175, 80, 0.7);
             animation: tutorialPulseGreen 1.2s infinite;
-            z-index: 49 !important;
         }
 
         .foundation.tutorial-highlight {
