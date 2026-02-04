@@ -2792,6 +2792,11 @@
 
             // Continue with normal tutorial
             showTutorialStep();
+
+            // Trigger auto-moves if the setting was just enabled
+            if (autoMoveAces || autoMoveFoundation) {
+                setTimeout(() => tryAutoMoveToFoundation(), 200);
+            }
         }
 
         function endTutorial() {
@@ -2937,6 +2942,9 @@
                 render();
                 saveGameState();
 
+                // Update tutorial after auto-move
+                updateTutorialAfterMove();
+
                 // Check if auto-finish can be triggered
                 if (checkAndTriggerAutoFinish()) {
                     return true;
@@ -2946,6 +2954,8 @@
             } else {
                 // No more auto-moves, check if auto-finish can be triggered
                 checkAndTriggerAutoFinish();
+                // Update tutorial even when no moves (to refresh hints)
+                updateTutorialAfterMove();
             }
 
             return moved;
