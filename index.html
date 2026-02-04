@@ -1180,6 +1180,15 @@
         <div class="tutorial-step" id="tutorialStep"></div>
         <h3 id="tutorialTitle"></h3>
         <p id="tutorialText"></p>
+        <div class="tutorial-toggle" id="tutorialToggle" style="display: none;">
+            <div class="setting-row" style="border: none; padding: 12px 0;">
+                <span id="tutorialToggleLabel">Enable this feature</span>
+                <label class="toggle">
+                    <input type="checkbox" id="tutorialToggleInput">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
         <div class="tutorial-buttons">
             <button class="btn-skip" onclick="endTutorial()">Skip Tutorial</button>
             <button class="btn-next" id="tutorialNextBtn" onclick="nextTutorialStep()" style="display: none;">Next</button>
@@ -2424,9 +2433,13 @@
             const textEl = document.getElementById('tutorialText');
             const nextBtn = document.getElementById('tutorialNextBtn');
             const skipBtn = document.querySelector('.tutorial-dialogue .btn-skip');
+            const toggleContainer = document.getElementById('tutorialToggle');
 
             // Add class to body for layout adjustment
             document.body.classList.add('tutorial-active');
+
+            // Hide toggle container for normal tutorial steps
+            if (toggleContainer) toggleContainer.style.display = 'none';
 
             // Ensure skip button is visible during tutorial
             if (skipBtn) skipBtn.style.display = 'block';
@@ -2660,6 +2673,9 @@
             }
         }
 
+        // Track current setting being prompted in tutorial
+        let tutorialSettingPrompt = null;
+
         // Check if we should prompt user about auto-move settings during tutorial
         function checkTutorialAutoMovePrompt(card) {
             if (!tutorialMode) return;
@@ -2667,26 +2683,80 @@
             // After first ace moved to foundation, ask about auto-move aces
             if (card.value === 'A' && !tutorialPromptedAutoAces && !autoMoveAces) {
                 tutorialPromptedAutoAces = true;
-                setTimeout(() => {
-                    if (confirm('Would you like to enable "Auto-Move Aces"?\n\nThis will automatically move Aces to the foundation when they become available.')) {
-                        autoMoveAces = true;
-                        document.getElementById('autoMoveAces').checked = true;
-                        saveSettings();
-                    }
-                }, 300);
+                setTimeout(() => showTutorialSettingPrompt('autoMoveAces'), 400);
+                return;
             }
 
             // After first 2 moved to foundation, ask about auto-move to foundation
             if (card.value === '2' && !tutorialPromptedAutoFoundation && !autoMoveFoundation) {
                 tutorialPromptedAutoFoundation = true;
-                setTimeout(() => {
-                    if (confirm('Would you like to enable "Auto-Move to Foundation"?\n\nThis will automatically move cards to the foundation when they can be placed there.')) {
-                        autoMoveFoundation = true;
-                        document.getElementById('autoMoveFoundation').checked = true;
-                        saveSettings();
-                    }
-                }, 300);
+                setTimeout(() => showTutorialSettingPrompt('autoMoveFoundation'), 400);
+                return;
             }
+        }
+
+        function showTutorialSettingPrompt(setting) {
+            tutorialSettingPrompt = setting;
+
+            const dialogue = document.getElementById('tutorialDialogue');
+            const stepEl = document.getElementById('tutorialStep');
+            const titleEl = document.getElementById('tutorialTitle');
+            const textEl = document.getElementById('tutorialText');
+            const toggleContainer = document.getElementById('tutorialToggle');
+            const toggleLabel = document.getElementById('tutorialToggleLabel');
+            const toggleInput = document.getElementById('tutorialToggleInput');
+            const nextBtn = document.getElementById('tutorialNextBtn');
+
+            // Clear highlights during settings prompt
+            tutorialHighlights = { cards: [], foundations: [], columns: [], targetCards: [] };
+            render();
+
+            if (setting === 'autoMoveAces') {
+                stepEl.textContent = 'Tip';
+                titleEl.textContent = 'Auto-Move Aces';
+                textEl.textContent = 'Would you like Aces to automatically move to the foundation when they become available?';
+                toggleLabel.textContent = 'Enable Auto-Move Aces';
+                toggleInput.checked = false;
+            } else if (setting === 'autoMoveFoundation') {
+                stepEl.textContent = 'Tip';
+                titleEl.textContent = 'Auto-Move to Foundation';
+                textEl.textContent = 'Would you like cards to automatically move to the foundation when they can be placed there?';
+                toggleLabel.textContent = 'Enable Auto-Move to Foundation';
+                toggleInput.checked = false;
+            }
+
+            toggleContainer.style.display = 'block';
+            nextBtn.textContent = 'Continue';
+            nextBtn.style.display = 'block';
+            nextBtn.onclick = handleTutorialSettingContinue;
+
+            dialogue.classList.add('show');
+            dialogue.style.display = 'block';
+        }
+
+        function handleTutorialSettingContinue() {
+            const toggleInput = document.getElementById('tutorialToggleInput');
+            const toggleContainer = document.getElementById('tutorialToggle');
+            const nextBtn = document.getElementById('tutorialNextBtn');
+
+            // Save the setting if toggle is on
+            if (tutorialSettingPrompt === 'autoMoveAces' && toggleInput.checked) {
+                autoMoveAces = true;
+                document.getElementById('autoMoveAces').checked = true;
+                saveSettings();
+            } else if (tutorialSettingPrompt === 'autoMoveFoundation' && toggleInput.checked) {
+                autoMoveFoundation = true;
+                document.getElementById('autoMoveFoundation').checked = true;
+                saveSettings();
+            }
+
+            // Reset state
+            tutorialSettingPrompt = null;
+            toggleContainer.style.display = 'none';
+            nextBtn.onclick = nextTutorialStep;
+
+            // Continue with normal tutorial
+            showTutorialStep();
         }
 
         function endTutorial() {
