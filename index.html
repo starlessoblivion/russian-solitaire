@@ -285,21 +285,20 @@
         .card-corner {
             position: absolute;
             display: flex;
-            flex-direction: row;
-            align-items: baseline;
+            flex-direction: column;
+            align-items: center;
             line-height: 1;
             font-weight: bold;
-            gap: 1px;
         }
 
         .card-corner.top-left {
             top: 3px;
-            left: 3px;
+            left: 4px;
         }
 
         .card-corner.bottom-right {
             bottom: 3px;
-            right: 3px;
+            right: 4px;
             transform: rotate(180deg);
         }
 
@@ -309,6 +308,26 @@
 
         .card-corner .corner-suit {
             font-size: var(--corner-suit-size);
+            margin-top: -2px;
+        }
+
+        /* Compact layout for tightly overlapped cards */
+        .card.compact .card-corner {
+            flex-direction: row;
+            align-items: baseline;
+            gap: 1px;
+        }
+
+        .card.compact .card-corner.top-left {
+            left: 3px;
+        }
+
+        .card.compact .card-corner.bottom-right {
+            right: 3px;
+        }
+
+        .card.compact .card-corner .corner-suit {
+            margin-top: 0;
         }
 
         .card-center {
@@ -485,6 +504,7 @@
 
         .foundation-card .card-corner .corner-suit {
             font-size: var(--foundation-corner-suit-size);
+            margin-top: -1px;
         }
 
         .foundation-card .card-center {
@@ -3348,6 +3368,9 @@
                 }
 
                 const spacing = calculateSpacing(tableau[col]);
+                const scaledSpacing = getScaledSpacing();
+                // Threshold for compact mode: less than 80% of normal minimum spacing
+                const compactThreshold = scaledSpacing.minFaceUp * 0.8;
                 let currentTop = 0;
 
                 tableau[col].forEach((card, i) => {
@@ -3356,6 +3379,12 @@
 
                     cardEl.className = getCardClasses(card, card.faceDown);
                     if (card.faceDown && isTopCard) cardEl.classList.add('exposed');
+
+                    // Add compact class if this card's spacing is tight
+                    if (!isTopCard && spacing[i] < compactThreshold) {
+                        cardEl.classList.add('compact');
+                    }
+
                     cardEl.style.top = currentTop + 'px';
                     cardEl.style.zIndex = i;
 
