@@ -19,13 +19,13 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #1a5f3c;
-            padding: 8px;
+            padding: 6px;
             -webkit-user-select: none;
             user-select: none;
         }
         
         .game-container {
-            height: calc(100vh - 50px);
+            height: calc(100vh - 40px);
             display: flex;
             flex-direction: column;
         }
@@ -37,23 +37,23 @@
         h1 {
             text-align: center;
             color: #fff;
-            font-size: 1.1rem;
-            margin-bottom: 4px;
+            font-size: 1rem;
+            margin-bottom: 3px;
         }
         
         .controls {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             justify-content: center;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
         }
         
         button {
             background: #ffd700;
             border: none;
-            padding: 6px 12px;
-            font-size: 0.8rem;
-            border-radius: 5px;
+            padding: 5px 10px;
+            font-size: 0.75rem;
+            border-radius: 4px;
             cursor: pointer;
             font-weight: bold;
             touch-action: manipulation;
@@ -64,28 +64,28 @@
         .foundations {
             display: flex;
             justify-content: space-around;
-            margin-bottom: 8px;
-            gap: 4px;
+            margin-bottom: 6px;
+            gap: 3px;
         }
         
         .foundation {
-            width: 45px;
-            height: 60px;
+            width: 42px;
+            height: 55px;
             background: rgba(255,255,255,0.1);
             border: 2px dashed rgba(255,255,255,0.4);
-            border-radius: 5px;
+            border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             color: rgba(255,255,255,0.6);
             cursor: pointer;
         }
         
         .foundation.has-card {
             background: #fff;
-            border: 2px solid #fff;
-            padding: 3px;
+            border: 1px solid #fff;
+            padding: 2px;
         }
         
         .foundation.drop-target {
@@ -99,7 +99,7 @@
             display: flex;
             justify-content: space-between;
             gap: 3px;
-            padding: 4px;
+            padding: 3px;
         }
         
         .column {
@@ -117,16 +117,16 @@
         .card {
             width: 100%;
             aspect-ratio: 2/3;
-            max-height: 55px;
+            max-height: 50px;
             background: #fff;
-            border-radius: 4px;
+            border-radius: 3px;
             position: absolute;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: bold;
             cursor: pointer;
             border: 1px solid #fff;
@@ -148,28 +148,28 @@
         .card .value-suit {
             display: flex;
             align-items: center;
-            gap: 2px;
+            gap: 1px;
         }
         
         .card .suit {
-            font-size: 0.7rem;
+            font-size: 0.55rem;
         }
         
         .card.selected {
-            box-shadow: 0 0 0 3px #ffd700, 0 2px 6px rgba(255,215,0,0.5);
-            transform: scale(1.05);
+            box-shadow: 0 0 0 2px #ffd700, 0 2px 4px rgba(255,215,0,0.5);
+            transform: scale(1.03);
         }
         
         .foundation-card {
             width: 100%;
             height: 100%;
             background: #fff;
-            border-radius: 3px;
+            border-radius: 2px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             font-weight: bold;
             border: 1px solid #ddd;
         }
@@ -184,9 +184,9 @@
             transform: translate(-50%, -50%);
             background: rgba(0,0,0,0.9);
             color: #fff;
-            padding: 20px 35px;
-            border-radius: 12px;
-            font-size: 1.2rem;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 1rem;
             text-align: center;
             display: none;
             z-index: 1000;
@@ -197,7 +197,7 @@
         .hint {
             text-align: center;
             color: rgba(255,255,255,0.5);
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             margin-top: 2px;
         }
     </style>
@@ -220,6 +220,8 @@
     <script>
         const suits = ['♠', '♥', '♦', '♣'];
         const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        const CARD_HEIGHT = 50;
+        const MIN_FACE_DOWN_SPACING = 12;
         
         let foundations = [[], [], [], []];
         let tableau = [[], [], [], [], [], [], [], []];
@@ -242,6 +244,46 @@
                 [deck[i], deck[j]] = [deck[j], deck[i]];
             }
             return deck;
+        }
+        
+        function calculateSpacing(cards) {
+            // Count face-down cards at the bottom
+            let faceDownCount = 0;
+            let faceUpCount = 0;
+            
+            for (let i = cards.length - 1; i >= 0; i--) {
+                if (cards[i].faceDown) {
+                    faceDownCount++;
+                } else {
+                    faceUpCount = i + 1;
+                    break;
+                }
+            }
+            
+            // Get available height (tableau height - bottom padding)
+            const tableauEl = document.getElementById('tableau');
+            const availableHeight = tableauEl.clientHeight - 20;
+            
+            // Calculate minimum required height
+            const minRequired = (faceUpCount * CARD_HEIGHT) + (faceDownCount * MIN_FACE_DOWN_SPACING);
+            
+            if (minRequired <= availableHeight) {
+                // Fits with ideal spacing
+                return cards.map((card, i) => {
+                    if (card.faceDown) {
+                        return MIN_FACE_DOWN_SPACING;
+                    }
+                    return CARD_HEIGHT;
+                });
+            }
+            
+            // Need to compress - face-down cards overlap more
+            const totalSpacing = availableHeight;
+            const faceUpSpace = faceUpCount * CARD_HEIGHT;
+            const remainingSpace = totalSpacing - faceUpSpace;
+            const faceDownSpacing = Math.max(MIN_FACE_DOWN_SPACING, remainingSpace / (faceDownCount || 1));
+            
+            return cards.map(card => card.faceDown ? faceDownSpacing : CARD_HEIGHT);
         }
         
         function newGame() {
@@ -303,12 +345,15 @@
                 columnEl.dataset.index = col;
                 columnEl.onclick = () => handleTableauClick(col);
                 
+                const spacing = calculateSpacing(tableau[col]);
+                let currentTop = 0;
+                
                 tableau[col].forEach((card, i) => {
                     const cardEl = document.createElement('div');
                     const isTopCard = (i === tableau[col].length - 1);
                     cardEl.className = 'card ' + (card.faceDown ? 'face-down' : card.color);
                     if (card.faceDown && isTopCard) cardEl.classList.add('exposed');
-                    cardEl.style.top = (i * 55) + 'px';
+                    cardEl.style.top = currentTop + 'px';
                     cardEl.style.zIndex = i;
                     
                     if (!card.faceDown) {
@@ -325,6 +370,7 @@
                     };
                     
                     columnEl.appendChild(cardEl);
+                    currentTop += spacing[i];
                 });
                 
                 tableauEl.appendChild(columnEl);
@@ -334,9 +380,7 @@
         function handleCardClick(col, index) {
             const card = tableau[col][index];
             
-            // Flip face-down card if it's the top card
             if (card.faceDown) {
-                // Only allow flipping if it's the last card in the column
                 if (index === tableau[col].length - 1) {
                     card.faceDown = false;
                     render();
@@ -344,7 +388,6 @@
                 return;
             }
             
-            // Select card for moving
             if (selected && selected.col === col && selected.index === index) {
                 selected = null;
             } else {
