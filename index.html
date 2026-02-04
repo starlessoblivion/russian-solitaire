@@ -488,6 +488,10 @@
         }
         
         function saveMove(action) {
+            // Track if cards were face-down before the move
+            if (action.type === 'tableau' && action.cards) {
+                action.wasFaceDown = action.cards.map(c => c.wasFaceDown);
+            }
             moveHistory.push(action);
             moveCount++;
         }
@@ -504,6 +508,12 @@
             } else if (action.type === 'tableau') {
                 // Move cards back from target column to source column
                 const cardsToMove = tableau[action.toCol].splice(action.cardCount);
+                // Restore face-down state for cards that were flipped during the move
+                if (action.wasFaceDown && cardsToMove.length === action.wasFaceDown.length) {
+                    cardsToMove.forEach((card, i) => {
+                        card.faceDown = action.wasFaceDown[i];
+                    });
+                }
                 tableau[action.fromCol].push(...cardsToMove.reverse());
             } else if (action.type === 'flip') {
                 // Flip card back
@@ -742,11 +752,15 @@
                 checkGameState();
             } else {
                 const cards = tableau[cardCol].splice(cardIndex);
+                // Track face-down state before move
+                const wasFaceDown = cards.map(c => c.faceDown);
                 saveMove({
                     type: 'tableau',
                     fromCol: cardCol,
                     toCol: target.index,
-                    cardCount: cards.length
+                    cardCount: cards.length,
+                    cards: cards,
+                    wasFaceDown: wasFaceDown
                 });
                 tableau[target.index].push(...cards);
                 checkGameState();
