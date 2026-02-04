@@ -645,10 +645,15 @@
                     const isTopCard = (i === tableau[col].length - 1);
                     
                     // Check tableau moves (any face-up card can move to tableau with its stack)
+                    // BUT cannot move onto a face-down card
                     for (let targetCol = 0; targetCol < 7; targetCol++) {
                         if (targetCol === col) continue;
                         
                         const targetTop = tableau[targetCol][tableau[targetCol].length - 1];
+                        
+                        // Cannot move onto a face-down card
+                        if (targetTop && targetTop.faceDown) continue;
+                        
                         if (!targetTop && card.value === 'K') {
                             moves.push({ type: 'tableau', cardCol: col, cardIndex: i, targetCol });
                         }
@@ -658,11 +663,13 @@
                     }
                     
                     // Check foundation moves (ONLY top cards can go to foundation)
+                    // Priority: Aces to foundation take precedence over tableau moves
                     if (isTopCard) {
                         for (let f = 0; f < 4; f++) {
                             const top = foundations[f][foundations[f].length - 1];
                             if (!top && card.value === 'A' && suits[f] === card.suit) {
-                                moves.push({ type: 'foundation', cardCol: col, cardIndex: i, foundation: f });
+                                // Ace to empty foundation - highest priority, add at beginning
+                                moves.unshift({ type: 'foundation', cardCol: col, cardIndex: i, foundation: f });
                             }
                             if (top && card.suit === top.suit && card.valueNum === top.valueNum + 1) {
                                 moves.push({ type: 'foundation', cardCol: col, cardIndex: i, foundation: f });
@@ -708,10 +715,22 @@
         }
         
         function findValidMove(card, isTopCard) {
-            // Check tableau moves first (any face-up card can move to tableau)
+            // Priority 1: Ace to empty foundation (highest priority)
+            if (isTopCard && card.value === 'A') {
+                for (let f = 0; f < 4; f++) {
+                    if (foundations[f].length === 0 && suits[f] === card.suit) {
+                        return { type: 'foundation', index: f };
+                    }
+                }
+            }
+            
+            // Priority 2: Tableau moves (cannot move onto face-down cards)
             for (let col = 0; col < 7; col++) {
                 const targetColCards = tableau[col];
                 const targetTop = targetColCards[targetColCards.length - 1];
+                
+                // Cannot move onto a face-down card
+                if (targetTop && targetTop.faceDown) continue;
                 
                 if (!targetTop) {
                     if (card.value === 'K') {
@@ -724,7 +743,7 @@
                 }
             }
             
-            // Check foundations (ONLY top cards can go to foundation)
+            // Priority 3: Foundation moves (ONLY top cards)
             if (isTopCard) {
                 for (let f = 0; f < 4; f++) {
                     const top = foundations[f][foundations[f].length - 1];
@@ -912,6 +931,13 @@
             const card = tableau[selected.col][selected.index];
             const targetColCards = tableau[targetCol];
             const targetTop = targetColCards[targetColCards.length - 1];
+            
+            // Cannot move onto a face-down card
+            if (targetTop && targetTop.faceDown) {
+                selected = null;
+                render();
+                return;
+            }
             
             if (!targetTop) {
                 if (card.value === 'K') {
