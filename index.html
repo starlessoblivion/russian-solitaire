@@ -4,61 +4,76 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Russian Solitaire</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Lora:wght@700&family=Merriweather:wght@700&family=Playfair+Display:wght@700&family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-color: #1a5f3c;
+            --card-face-bg: #ffffff;
+            --card-face-border: #ffffff;
+            --card-red: #d40000;
+            --card-black: #000000;
+            --card-back-bg: linear-gradient(135deg, #1a4a8a 25%, #2a5a9a 25%, #2a5a9a 50%, #1a4a8a 50%, #1a4a8a 75%, #2a6aaa 75%);
+            --card-back-size: 8px 8px;
+            --card-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         html, body {
             height: 100%;
             height: 100dvh;
             overflow: hidden;
             overscroll-behavior: none;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1a5f3c;
+            background: var(--bg-color);
             padding: 6px;
             padding-bottom: 65px;
             -webkit-user-select: none;
             user-select: none;
             overscroll-behavior: none;
+            transition: background 0.3s ease;
         }
-        
+
         .game-container {
             height: calc(100% - 55px - env(safe-area-inset-bottom));
             display: flex;
             flex-direction: column;
         }
-        
+
         .top-section {
             flex-shrink: 0;
         }
-        
+
         .header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             margin-bottom: 3px;
         }
-        
+
         h1 {
             color: #fff;
             font-size: 1rem;
             flex: 1;
             text-align: center;
         }
-        
+
         .foundations {
             display: flex;
             justify-content: space-around;
             margin-bottom: 6px;
             gap: 3px;
         }
-        
+
         .foundation {
             width: 38px;
             height: 50px;
@@ -72,19 +87,19 @@
             color: rgba(255,255,255,0.6);
             cursor: pointer;
         }
-        
+
         .foundation.has-card {
-            background: #fff;
-            border: 1px solid #fff;
+            background: var(--card-face-bg);
+            border: 1px solid var(--card-face-border);
             padding: 2px;
         }
-        
+
         .foundation.drop-target {
             background: rgba(255,215,0,0.3);
             border-color: #ffd700;
             border-style: solid;
         }
-        
+
         .tableau {
             flex: 1;
             display: flex;
@@ -92,7 +107,7 @@
             gap: 3px;
             padding: 3px;
         }
-        
+
         .column {
             flex: 1;
             max-width: 50px;
@@ -100,16 +115,16 @@
             cursor: pointer;
             border-radius: 4px;
         }
-        
+
         .column.drop-target {
             background: rgba(255,215,0,0.2);
         }
-        
+
         .card {
             width: 100%;
             aspect-ratio: 2/3;
             max-height: 45px;
-            background: #fff;
+            background: var(--card-face-bg);
             border-radius: 3px;
             position: absolute;
             box-shadow: 0 1px 2px rgba(0,0,0,0.3);
@@ -120,51 +135,53 @@
             font-size: 0.6rem;
             font-weight: bold;
             cursor: pointer;
-            border: 1px solid #fff;
+            border: 1px solid var(--card-face-border);
+            font-family: var(--card-font);
+            transition: background 0.2s ease, border-color 0.2s ease;
         }
-        
+
         .card.face-down {
-            background: linear-gradient(135deg, #1a4a8a 25%, #2a5a9a 25%, #2a5a9a 50%, #1a4a8a 50%, #1a4a8a 75%, #2a6aaa 75%);
-            background-size: 8px 8px;
+            background: var(--card-back-bg);
+            background-size: var(--card-back-size);
         }
-        
+
         .card.face-down.exposed {
             border-color: #ffd700;
             cursor: pointer;
         }
-        
-        .card.red { color: #d40000; }
-        .card.black { color: #000; }
-        
+
+        .card.red { color: var(--card-red); }
+        .card.black { color: var(--card-black); }
+
         .card .value-suit {
             display: flex;
             align-items: center;
             gap: 1px;
         }
-        
+
         .card .suit {
             font-size: 0.55rem;
         }
-        
+
         .card.selected {
             box-shadow: 0 0 0 2px #ffd700, 0 2px 4px rgba(255,215,0,0.5);
             transform: scale(1.03);
         }
-        
+
         .card.hint-highlight {
             box-shadow: 0 0 0 3px #00ff00, 0 2px 6px rgba(0,255,0,0.5);
             animation: pulse 1s infinite;
         }
-        
+
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
         }
-        
+
         .foundation-card {
             width: 100%;
             height: 100%;
-            background: #fff;
+            background: var(--card-face-bg);
             border-radius: 2px;
             display: flex;
             flex-direction: column;
@@ -173,11 +190,12 @@
             font-size: 0.55rem;
             font-weight: bold;
             border: 1px solid #ddd;
+            font-family: var(--card-font);
         }
-        
-        .foundation-card.red { color: #d40000; }
-        .foundation-card.black { color: #000; }
-        
+
+        .foundation-card.red { color: var(--card-red); }
+        .foundation-card.black { color: var(--card-black); }
+
         /* Bottom Bar */
         .bottom-bar {
             position: fixed;
@@ -193,7 +211,7 @@
             padding-bottom: max(15px, env(safe-area-inset-bottom));
             z-index: 100;
         }
-        
+
         .bottom-bar button {
             background: #ffd700;
             border: none;
@@ -203,25 +221,25 @@
             border-radius: 6px;
             cursor: pointer;
         }
-        
+
         .bottom-bar button:active {
             transform: scale(0.95);
         }
-        
+
         .bottom-bar .settings-btn {
             background: none;
             font-size: 1.5rem;
             padding: 5px 10px;
             opacity: 0.9;
         }
-        
+
         .bottom-bar .icon-btn {
             background: none;
             font-size: 1.5rem;
             padding: 8px 12px;
             opacity: 0.9;
         }
-        
+
         /* Settings Modal */
         .modal-overlay {
             position: fixed;
@@ -235,11 +253,11 @@
             justify-content: center;
             z-index: 1000;
         }
-        
+
         .modal-overlay.show {
             display: flex;
         }
-        
+
         .modal {
             background: #2a2a2a;
             border-radius: 12px;
@@ -247,14 +265,25 @@
             width: 80%;
             max-width: 300px;
             color: #fff;
+            position: relative;
+            max-height: 85vh;
+            overflow-y: auto;
         }
-        
+
         .modal h2 {
             font-size: 1.2rem;
             margin-bottom: 15px;
             text-align: center;
         }
-        
+
+        .modal h3 {
+            font-size: 0.9rem;
+            margin: 15px 0 10px 0;
+            color: #aaa;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+
         .setting-row {
             display: flex;
             align-items: center;
@@ -262,23 +291,23 @@
             padding: 10px 0;
             border-bottom: 1px solid #444;
         }
-        
+
         .setting-row:last-child {
             border-bottom: none;
         }
-        
+
         .toggle {
             position: relative;
             width: 50px;
             height: 28px;
         }
-        
+
         .toggle input {
             opacity: 0;
             width: 0;
             height: 0;
         }
-        
+
         .toggle-slider {
             position: absolute;
             cursor: pointer;
@@ -290,7 +319,7 @@
             border-radius: 28px;
             transition: 0.3s;
         }
-        
+
         .toggle-slider:before {
             position: absolute;
             content: "";
@@ -302,15 +331,15 @@
             border-radius: 50%;
             transition: 0.3s;
         }
-        
+
         .toggle input:checked + .toggle-slider {
             background: #4CAF50;
         }
-        
+
         .toggle input:checked + .toggle-slider:before {
             transform: translateX(22px);
         }
-        
+
         .modal-btn {
             width: 100%;
             background: #ffd700;
@@ -321,12 +350,22 @@
             border-radius: 8px;
             cursor: pointer;
             margin-top: 15px;
+            color: #000;
         }
-        
+
         .modal-btn:active {
             background: #e6c700;
         }
-        
+
+        .modal-btn.secondary {
+            background: #444;
+            color: #fff;
+        }
+
+        .modal-btn.secondary:active {
+            background: #555;
+        }
+
         .close-modal {
             position: absolute;
             top: 10px;
@@ -338,24 +377,71 @@
             cursor: pointer;
             opacity: 0.7;
         }
-        
+
         .close-modal:active {
             opacity: 1;
         }
-        
+
         .hint {
             text-align: center;
             color: rgba(255,255,255,0.5);
             font-size: 0.6rem;
             margin-top: 2px;
         }
-        
+
+        /* Theme Options */
+        .theme-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .theme-option {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6rem;
+            font-weight: bold;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theme-option:active {
+            transform: scale(0.95);
+        }
+
+        .theme-option.selected {
+            border-color: #ffd700;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+        }
+
+        .theme-option.card-back {
+            background-size: 6px 6px;
+        }
+
+        .theme-option.card-face {
+            color: #000;
+            font-size: 0.7rem;
+        }
+
+        .theme-option.font-option {
+            background: #333;
+            color: #fff;
+            font-size: 0.8rem;
+        }
+
         /* Win/Lose Modal */
         .game-over-modal {
             text-align: center;
             position: relative;
         }
-        
+
         .game-over-modal .close-modal {
             position: absolute;
             top: 10px;
@@ -367,26 +453,26 @@
             cursor: pointer;
             opacity: 0.7;
         }
-        
+
         .game-over-modal .close-modal:active {
             opacity: 1;
         }
-        
+
         .game-over-modal h2 {
             font-size: 2rem;
             margin-bottom: 10px;
         }
-        
+
         .game-over-modal .moves-count {
             font-size: 1rem;
             color: #aaa;
             margin-bottom: 20px;
         }
-        
+
         .game-over-modal.win h2 {
             color: #ffd700;
         }
-        
+
         .game-over-modal.lose h2 {
             color: #ff6b6b;
         }
@@ -403,7 +489,7 @@
         </div>
         <div class="tableau" id="tableau"></div>
     </div>
-    
+
     <!-- Bottom Bar -->
     <div class="bottom-bar">
         <button class="icon-btn settings-btn" onclick="toggleSettings()">⚙️</button>
@@ -411,7 +497,7 @@
         <button class="icon-btn" onclick="showHint()">💡</button>
         <button class="icon-btn" onclick="undo()">↩️</button>
     </div>
-    
+
     <!-- Settings Modal -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal">
@@ -424,9 +510,32 @@
                     <span class="toggle-slider"></span>
                 </label>
             </div>
+            <button class="modal-btn secondary" onclick="toggleSettings(); toggleThemes();">🎨 Customize Theme</button>
         </div>
     </div>
-    
+
+    <!-- Themes Modal -->
+    <div class="modal-overlay" id="themesModal">
+        <div class="modal">
+            <button class="close-modal" onclick="toggleThemes()">×</button>
+            <h2>🎨 Themes</h2>
+
+            <h3>Background</h3>
+            <div class="theme-options" id="bgOptions"></div>
+
+            <h3>Card Back</h3>
+            <div class="theme-options" id="cardBackOptions"></div>
+
+            <h3>Card Face</h3>
+            <div class="theme-options" id="cardFaceOptions"></div>
+
+            <h3>Card Font</h3>
+            <div class="theme-options" id="fontOptions"></div>
+
+            <button class="modal-btn" onclick="toggleThemes()">Done</button>
+        </div>
+    </div>
+
     <!-- Game Over Modal -->
     <div class="modal-overlay" id="gameOverModal">
         <div class="modal game-over-modal" id="gameOverContent">
@@ -436,20 +545,71 @@
             <button class="modal-btn" onclick="newGame(); hideGameOver();">New Game</button>
         </div>
     </div>
-    
+
     <script>
         const suits = ['♠', '♥', '♦', '♣'];
         const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
         const CARD_HEIGHT = 45;
         const MIN_FACE_DOWN_SPACING = 8;
-        
+
         let foundations = [[], [], [], []];
         let tableau = [[], [], [], [], [], [], []];
         let selected = null;
         let oneTapMove = false;
         let moveHistory = [];
         let moveCount = 0;
-        
+
+        // Theme options
+        const themeOptions = {
+            backgrounds: [
+                { id: 'classic-green', name: 'Classic', color: '#1a5f3c' },
+                { id: 'dark-green', name: 'Forest', color: '#0d3320' },
+                { id: 'navy', name: 'Navy', color: '#1a2a4a' },
+                { id: 'burgundy', name: 'Burgundy', color: '#4a1a2a' },
+                { id: 'charcoal', name: 'Charcoal', color: '#2a2a2a' },
+                { id: 'purple', name: 'Purple', color: '#3a1a4a' },
+                { id: 'teal', name: 'Teal', color: '#1a4a4a' },
+                { id: 'brown', name: 'Wood', color: '#3d2b1f' }
+            ],
+            cardBacks: [
+                { id: 'classic-blue', name: 'Classic', bg: 'linear-gradient(135deg, #1a4a8a 25%, #2a5a9a 25%, #2a5a9a 50%, #1a4a8a 50%, #1a4a8a 75%, #2a6aaa 75%)', size: '8px 8px' },
+                { id: 'red-pattern', name: 'Red', bg: 'linear-gradient(135deg, #8a1a1a 25%, #9a2a2a 25%, #9a2a2a 50%, #8a1a1a 50%, #8a1a1a 75%, #aa3a3a 75%)', size: '8px 8px' },
+                { id: 'green-pattern', name: 'Green', bg: 'linear-gradient(135deg, #1a6a3a 25%, #2a7a4a 25%, #2a7a4a 50%, #1a6a3a 50%, #1a6a3a 75%, #3a8a5a 75%)', size: '8px 8px' },
+                { id: 'purple-pattern', name: 'Purple', bg: 'linear-gradient(135deg, #4a1a6a 25%, #5a2a7a 25%, #5a2a7a 50%, #4a1a6a 50%, #4a1a6a 75%, #6a3a8a 75%)', size: '8px 8px' },
+                { id: 'gold-pattern', name: 'Gold', bg: 'linear-gradient(135deg, #8a6a1a 25%, #9a7a2a 25%, #9a7a2a 50%, #8a6a1a 50%, #8a6a1a 75%, #aa8a3a 75%)', size: '8px 8px' },
+                { id: 'diamonds', name: 'Diamonds', bg: 'linear-gradient(45deg, #2a4a7a 25%, transparent 25%), linear-gradient(-45deg, #2a4a7a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #2a4a7a 75%), linear-gradient(-45deg, transparent 75%, #2a4a7a 75%)', size: '12px 12px', extra: '#1a3a6a' },
+                { id: 'stripes', name: 'Stripes', bg: 'repeating-linear-gradient(45deg, #1a4a8a, #1a4a8a 4px, #2a5a9a 4px, #2a5a9a 8px)', size: 'auto' },
+                { id: 'dots', name: 'Dots', bg: 'radial-gradient(circle, #3a6aaa 2px, #1a4a8a 2px)', size: '10px 10px' }
+            ],
+            cardFaces: [
+                { id: 'classic-white', name: 'Classic', bg: '#ffffff', border: '#ffffff', red: '#d40000', black: '#000000' },
+                { id: 'cream', name: 'Cream', bg: '#f5f0e1', border: '#e8dcc8', red: '#b32d00', black: '#1a1a1a' },
+                { id: 'ivory', name: 'Ivory', bg: '#fffff0', border: '#f0f0e0', red: '#cc0000', black: '#000000' },
+                { id: 'paper', name: 'Paper', bg: '#faf8f5', border: '#e5e0d5', red: '#c41e3a', black: '#2c2c2c' },
+                { id: 'mint', name: 'Mint', bg: '#f0fff0', border: '#d0efd0', red: '#dc143c', black: '#004d00' },
+                { id: 'lavender', name: 'Lavender', bg: '#f8f0ff', border: '#e8d8f8', red: '#8b0000', black: '#2f0f3f' },
+                { id: 'peach', name: 'Peach', bg: '#fff5ee', border: '#ffe4d4', red: '#b22222', black: '#3d2b1f' },
+                { id: 'sky', name: 'Sky', bg: '#f0f8ff', border: '#d4e8f8', red: '#b22222', black: '#00008b' }
+            ],
+            fonts: [
+                { id: 'system', name: 'System', family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' },
+                { id: 'serif', name: 'Serif', family: 'Georgia, "Times New Roman", serif' },
+                { id: 'playfair', name: 'Elegant', family: '"Playfair Display", Georgia, serif' },
+                { id: 'cinzel', name: 'Classic', family: '"Cinzel", Georgia, serif' },
+                { id: 'merriweather', name: 'Modern', family: '"Merriweather", Georgia, serif' },
+                { id: 'lora', name: 'Lora', family: '"Lora", Georgia, serif' },
+                { id: 'roboto-slab', name: 'Slab', family: '"Roboto Slab", Georgia, serif' },
+                { id: 'monospace', name: 'Mono', family: '"SF Mono", "Courier New", monospace' }
+            ]
+        };
+
+        let currentTheme = {
+            background: 'classic-green',
+            cardBack: 'classic-blue',
+            cardFace: 'classic-white',
+            font: 'system'
+        };
+
         function loadSettings() {
             const saved = localStorage.getItem('russianSolitaireSettings');
             if (saved) {
@@ -457,17 +617,115 @@
                 oneTapMove = settings.oneTapMove || false;
                 document.getElementById('oneTapMove').checked = oneTapMove;
             }
+
+            const savedTheme = localStorage.getItem('russianSolitaireTheme');
+            if (savedTheme) {
+                currentTheme = JSON.parse(savedTheme);
+            }
+            applyTheme();
         }
-        
+
         function saveSettings() {
             oneTapMove = document.getElementById('oneTapMove').checked;
             localStorage.setItem('russianSolitaireSettings', JSON.stringify({ oneTapMove }));
         }
-        
+
+        function saveTheme() {
+            localStorage.setItem('russianSolitaireTheme', JSON.stringify(currentTheme));
+        }
+
+        function applyTheme() {
+            const root = document.documentElement;
+
+            // Apply background
+            const bg = themeOptions.backgrounds.find(b => b.id === currentTheme.background);
+            if (bg) root.style.setProperty('--bg-color', bg.color);
+
+            // Apply card back
+            const cardBack = themeOptions.cardBacks.find(c => c.id === currentTheme.cardBack);
+            if (cardBack) {
+                root.style.setProperty('--card-back-bg', cardBack.bg);
+                root.style.setProperty('--card-back-size', cardBack.size);
+                if (cardBack.extra) {
+                    root.style.setProperty('--card-back-extra', cardBack.extra);
+                }
+            }
+
+            // Apply card face
+            const cardFace = themeOptions.cardFaces.find(c => c.id === currentTheme.cardFace);
+            if (cardFace) {
+                root.style.setProperty('--card-face-bg', cardFace.bg);
+                root.style.setProperty('--card-face-border', cardFace.border);
+                root.style.setProperty('--card-red', cardFace.red);
+                root.style.setProperty('--card-black', cardFace.black);
+            }
+
+            // Apply font
+            const font = themeOptions.fonts.find(f => f.id === currentTheme.font);
+            if (font) root.style.setProperty('--card-font', font.family);
+
+            renderThemeOptions();
+        }
+
+        function selectTheme(category, id) {
+            currentTheme[category] = id;
+            saveTheme();
+            applyTheme();
+        }
+
+        function renderThemeOptions() {
+            // Background options
+            const bgContainer = document.getElementById('bgOptions');
+            bgContainer.innerHTML = themeOptions.backgrounds.map(bg => `
+                <div class="theme-option ${currentTheme.background === bg.id ? 'selected' : ''}"
+                     style="background: ${bg.color};"
+                     onclick="selectTheme('background', '${bg.id}')"
+                     title="${bg.name}">
+                </div>
+            `).join('');
+
+            // Card back options
+            const cardBackContainer = document.getElementById('cardBackOptions');
+            cardBackContainer.innerHTML = themeOptions.cardBacks.map(cb => `
+                <div class="theme-option card-back ${currentTheme.cardBack === cb.id ? 'selected' : ''}"
+                     style="background: ${cb.bg}; background-size: ${cb.size};${cb.extra ? ' background-color: ' + cb.extra + ';' : ''}"
+                     onclick="selectTheme('cardBack', '${cb.id}')"
+                     title="${cb.name}">
+                </div>
+            `).join('');
+
+            // Card face options
+            const cardFaceContainer = document.getElementById('cardFaceOptions');
+            cardFaceContainer.innerHTML = themeOptions.cardFaces.map(cf => `
+                <div class="theme-option card-face ${currentTheme.cardFace === cf.id ? 'selected' : ''}"
+                     style="background: ${cf.bg}; border-color: ${cf.border}; color: ${cf.red};"
+                     onclick="selectTheme('cardFace', '${cf.id}')"
+                     title="${cf.name}">
+                    A♥
+                </div>
+            `).join('');
+
+            // Font options
+            const fontContainer = document.getElementById('fontOptions');
+            fontContainer.innerHTML = themeOptions.fonts.map(f => `
+                <div class="theme-option font-option ${currentTheme.font === f.id ? 'selected' : ''}"
+                     style="font-family: ${f.family};"
+                     onclick="selectTheme('font', '${f.id}')"
+                     title="${f.name}">
+                    Aa
+                </div>
+            `).join('');
+        }
+
         function toggleSettings() {
             document.getElementById('settingsModal').classList.toggle('show');
         }
-        
+
+        function toggleThemes() {
+            document.getElementById('themesModal').classList.toggle('show');
+            renderThemeOptions();
+        }
+
         function createDeck() {
             let deck = [];
             for (let s = 0; s < 4; s++) {
@@ -486,7 +744,7 @@
             }
             return deck;
         }
-        
+
         function saveMove(action) {
             // Track if cards were face-down before the move
             if (action.type === 'tableau' && action.cards) {
@@ -495,12 +753,12 @@
             moveHistory.push(action);
             moveCount++;
         }
-        
+
         function undo() {
             if (moveHistory.length === 0) return;
-            
+
             const action = moveHistory.pop();
-            
+
             if (action.type === 'foundation') {
                 // Move card back from foundation to tableau
                 const card = foundations[action.fromFoundation].pop();
@@ -519,47 +777,47 @@
                 // Flip card back
                 tableau[action.col][action.index].faceDown = true;
             }
-            
+
             moveCount--;
             selected = null;
             render();
         }
-        
+
         function showHint() {
             const moves = findValidMoves();
-            
+
             if (moves.length === 0) {
                 checkLoseCondition();
                 return;
             }
-            
+
             // Pick a random valid move
             const randomMove = moves[Math.floor(Math.random() * moves.length)];
-            
+
             // Highlight the card from the move
             if (randomMove.type === 'flip') {
                 selected = { col: randomMove.cardCol, index: tableau[randomMove.cardCol].length - 1 };
             } else {
                 selected = { col: randomMove.cardCol, index: randomMove.cardIndex };
             }
-            
+
             render();
-            
+
             // Clear highlight after 2 seconds
             setTimeout(() => {
                 selected = null;
                 render();
             }, 2000);
         }
-        
+
         function calculateSpacing(cards) {
             const tableauEl = document.getElementById('tableau');
             const availableHeight = tableauEl.clientHeight - 10;
-            
+
             // Count face-down and face-up cards
             let faceDownCount = 0;
             let faceUpCount = 0;
-            
+
             for (let i = 0; i < cards.length; i++) {
                 if (cards[i].faceDown) {
                     faceDownCount++;
@@ -568,37 +826,37 @@
                     break;
                 }
             }
-            
+
             // Face-down cards have fixed overlap
             const faceDownSpacing = MIN_FACE_DOWN_SPACING; // 8px fixed
-            
+
             // Calculate space needed for face-up cards
             const faceUpSpace = faceUpCount * CARD_HEIGHT;
-            
+
             // Total space needed for face-down + face-up
             const totalNeeded = (faceDownCount * faceDownSpacing) + faceUpSpace;
-            
+
             if (totalNeeded <= availableHeight) {
                 // Fits - face-up cards get full height, face-down get fixed overlap
                 return cards.map(card => card.faceDown ? faceDownSpacing : CARD_HEIGHT);
             }
-            
+
             // Doesn't fit - compress face-up cards to fit, keep face-down overlap fixed
             const spaceForFaceUp = availableHeight - (faceDownCount * faceDownSpacing);
-            
+
             if (spaceForFaceUp <= 0) {
                 // Even compressed face-up doesn't fit - scale everything
                 const scale = availableHeight / totalNeeded;
-                return cards.map(card => 
+                return cards.map(card =>
                     card.faceDown ? faceDownSpacing * scale : CARD_HEIGHT * scale
                 );
             }
-            
+
             const faceUpCompressed = spaceForFaceUp / faceUpCount;
-            
+
             return cards.map(card => card.faceDown ? faceDownSpacing : Math.max(CARD_HEIGHT * 0.7, faceUpCompressed));
         }
-        
+
         function newGame() {
             const deck = createDeck();
             foundations = [[], [], [], []];
@@ -606,30 +864,30 @@
             selected = null;
             moveHistory = [];
             moveCount = 0;
-            
+
             const totals = [1, 6, 7, 8, 9, 10, 11];
             const faceUps = [1, 5, 5, 5, 5, 5, 5];
             let cardIndex = 0;
-            
+
             for (let col = 0; col < 7; col++) {
                 const total = totals[col];
                 const faceUpCount = faceUps[col];
                 const faceDownCount = total - faceUpCount;
-                
+
                 for (let i = 0; i < total; i++) {
                     let card = deck[cardIndex++];
                     card.faceDown = (i < faceDownCount);
                     tableau[col].push(card);
                 }
             }
-            
+
             hideGameOver();
             render();
         }
-        
+
         function findValidMoves() {
             const moves = [];
-            
+
             for (let col = 0; col < 7; col++) {
                 // Check if there's a face-down card that can be flipped
                 if (tableau[col].length > 0) {
@@ -638,26 +896,26 @@
                         moves.push({ type: 'flip', cardCol: col });
                     }
                 }
-                
+
                 if (tableau[col].length === 0) continue;
-                
+
                 // Check ALL face-up cards (not just top) for valid moves
                 for (let i = 0; i < tableau[col].length; i++) {
                     const card = tableau[col][i];
                     if (card.faceDown) continue;
-                    
+
                     const isTopCard = (i === tableau[col].length - 1);
-                    
+
                     // Check tableau moves (any face-up card can move to tableau with its stack)
                     // BUT cannot move onto a face-down card
                     for (let targetCol = 0; targetCol < 7; targetCol++) {
                         if (targetCol === col) continue;
-                        
+
                         const targetTop = tableau[targetCol][tableau[targetCol].length - 1];
-                        
+
                         // Cannot move onto a face-down card
                         if (targetTop && targetTop.faceDown) continue;
-                        
+
                         if (!targetTop && card.value === 'K') {
                             moves.push({ type: 'tableau', cardCol: col, cardIndex: i, targetCol });
                         }
@@ -665,7 +923,7 @@
                             moves.push({ type: 'tableau', cardCol: col, cardIndex: i, targetCol });
                         }
                     }
-                    
+
                     // Check foundation moves (ONLY top cards can go to foundation)
                     // Priority: Aces to foundation take precedence over tableau moves
                     if (isTopCard) {
@@ -682,42 +940,42 @@
                     }
                 }
             }
-            
+
             return moves;
         }
-        
+
         function checkGameState() {
             const total = foundations.reduce((sum, f) => sum + f.length, 0);
-            
+
             if (total === 52) {
                 showGameOver(true);
             }
         }
-        
+
         function checkLoseCondition() {
             const moves = findValidMoves();
             if (moves.length === 0) {
                 showGameOver(false);
             }
         }
-        
+
         function showGameOver(isWin) {
             const modal = document.getElementById('gameOverModal');
             const content = document.getElementById('gameOverContent');
             const title = document.getElementById('gameOverTitle');
             const movesText = document.getElementById('gameOverMoves');
-            
+
             content.className = 'modal game-over-modal ' + (isWin ? 'win' : 'lose');
             title.textContent = isWin ? '🎉 You Win!' : '😔 No more valid moves';
             movesText.textContent = `Total moves: ${moveCount}`;
-            
+
             modal.classList.add('show');
         }
-        
+
         function hideGameOver() {
             document.getElementById('gameOverModal').classList.remove('show');
         }
-        
+
         function findValidMove(card, isTopCard) {
             // Priority 1: Ace to empty foundation (highest priority)
             if (isTopCard && card.value === 'A') {
@@ -727,15 +985,15 @@
                     }
                 }
             }
-            
+
             // Priority 2: Tableau moves (cannot move onto face-down cards)
             for (let col = 0; col < 7; col++) {
                 const targetColCards = tableau[col];
                 const targetTop = targetColCards[targetColCards.length - 1];
-                
+
                 // Cannot move onto a face-down card
                 if (targetTop && targetTop.faceDown) continue;
-                
+
                 if (!targetTop) {
                     if (card.value === 'K') {
                         return { type: 'tableau', index: col };
@@ -746,7 +1004,7 @@
                     }
                 }
             }
-            
+
             // Priority 3: Foundation moves (ONLY top cards)
             if (isTopCard) {
                 for (let f = 0; f < 4; f++) {
@@ -759,13 +1017,13 @@
                     }
                 }
             }
-            
+
             return null;
         }
-        
+
         function executeMove(cardCol, cardIndex, target) {
             const card = tableau[cardCol][cardIndex];
-            
+
             // Determine cards to move (just the card for foundation, stack for tableau)
             let cardsToMove;
             if (target.type === 'foundation') {
@@ -773,10 +1031,10 @@
             } else {
                 cardsToMove = tableau[cardCol].splice(cardIndex);
             }
-            
+
             // Track face-down state before move
             const wasFaceDown = cardsToMove.map(c => c.faceDown);
-            
+
             if (target.type === 'foundation') {
                 saveMove({
                     type: 'foundation',
@@ -800,11 +1058,11 @@
                 checkGameState();
             }
         }
-        
+
         function handleCardClick(col, index) {
             const card = tableau[col][index];
             const isTopCard = index === tableau[col].length - 1;
-            
+
             // Flip face-down card
             if (card.faceDown) {
                 if (isTopCard) {
@@ -814,7 +1072,7 @@
                 }
                 return;
             }
-            
+
             // One tap move - try to find and execute valid move
             if (oneTapMove) {
                 const validMove = findValidMove(card, isTopCard);
@@ -824,7 +1082,7 @@
                 }
                 return;
             }
-            
+
             // Manual mode - select/deselect any face-up card
             // If card is already selected by hint, try to move it
             if (selected && selected.col === col && selected.index === index) {
@@ -834,17 +1092,17 @@
                     const foundation = foundations[f];
                     const top = foundation[foundation.length - 1];
                     const isEmptyFoundation = !top;
-                    const isValidFoundation = isEmptyFoundation 
+                    const isValidFoundation = isEmptyFoundation
                         ? (card.value === 'A' && suits[f] === card.suit)
                         : (card.suit === top.suit && card.valueNum === top.valueNum + 1);
-                    
+
                     if (isValidFoundation) {
                         executeMove(col, index, { type: 'foundation', index: f });
                         render();
                         return;
                     }
                 }
-                
+
                 // Try tableau
                 for (let targetCol = 0; targetCol < 7; targetCol++) {
                     if (targetCol === col) continue;
@@ -864,7 +1122,7 @@
                         return;
                     }
                 }
-                
+
                 // No valid move found, just deselect
                 selected = null;
                 render();
@@ -874,12 +1132,12 @@
                 render();
             }
         }
-        
+
         function handleFoundationClick(fIndex) {
             if (!selected || oneTapMove) return;
-            
+
             const card = tableau[selected.col][selected.index];
-            
+
             // Only top cards can be moved to foundation
             if (selected.index !== tableau[selected.col].length - 1) {
                 // Show hint that only top cards can go to foundation
@@ -887,10 +1145,10 @@
                 render();
                 return;
             }
-            
+
             const foundation = foundations[fIndex];
             const top = foundation[foundation.length - 1];
-            
+
             if (!top) {
                 if (card.value === 'A' && suits[fIndex] === card.suit) {
                     foundations[fIndex].push(card);
@@ -922,31 +1180,31 @@
                     return;
                 }
             }
-            
+
             selected = null;
             render();
         }
-        
+
         function handleTableauClick(targetCol) {
             if (!selected || oneTapMove) return;
-            
+
             if (selected.col === targetCol) {
                 selected = null;
                 render();
                 return;
             }
-            
+
             const card = tableau[selected.col][selected.index];
             const targetColCards = tableau[targetCol];
             const targetTop = targetColCards[targetColCards.length - 1];
-            
+
             // Cannot move onto a face-down card
             if (targetTop && targetTop.faceDown) {
                 selected = null;
                 render();
                 return;
             }
-            
+
             if (!targetTop) {
                 if (card.value === 'K') {
                     const cards = tableau[selected.col].splice(selected.index);
@@ -976,15 +1234,15 @@
                     tableau[targetCol].push(...cards);
                 }
             }
-            
+
             selected = null;
             render();
         }
-        
+
         function render() {
             const foundationsEl = document.getElementById('foundations');
             foundationsEl.innerHTML = '';
-            
+
             for (let i = 0; i < 4; i++) {
                 const f = foundations[i];
                 const top = f[f.length - 1];
@@ -994,7 +1252,7 @@
                 div.dataset.type = 'foundation';
                 div.dataset.index = i;
                 div.onclick = () => handleFoundationClick(i);
-                
+
                 if (top) {
                     div.innerHTML = '<div class="foundation-card ' + top.color + '"><span class="value-suit">' + top.value + '<span class="suit">' + top.suit + '</span></span></div>';
                 } else {
@@ -1002,20 +1260,20 @@
                 }
                 foundationsEl.appendChild(div);
             }
-            
+
             const tableauEl = document.getElementById('tableau');
             tableauEl.innerHTML = '';
-            
+
             for (let col = 0; col < 7; col++) {
                 const columnEl = document.createElement('div');
                 columnEl.className = 'column' + (selected && !oneTapMove ? ' drop-target' : '');
                 columnEl.dataset.type = 'tableau';
                 columnEl.dataset.index = col;
                 columnEl.onclick = () => handleTableauClick(col);
-                
+
                 const spacing = calculateSpacing(tableau[col]);
                 let currentTop = 0;
-                
+
                 tableau[col].forEach((card, i) => {
                     const cardEl = document.createElement('div');
                     const isTopCard = (i === tableau[col].length - 1);
@@ -1023,28 +1281,28 @@
                     if (card.faceDown && isTopCard) cardEl.classList.add('exposed');
                     cardEl.style.top = currentTop + 'px';
                     cardEl.style.zIndex = i;
-                    
+
                     if (!card.faceDown) {
                         cardEl.innerHTML = '<span class="value-suit">' + card.value + '<span class="suit">' + card.suit + '</span></span>';
                     }
-                    
+
                     if (selected && selected.col === col && selected.index === i) {
                         cardEl.classList.add('selected');
                     }
-                    
+
                     cardEl.onclick = (e) => {
                         e.stopPropagation();
                         handleCardClick(col, i);
                     };
-                    
+
                     columnEl.appendChild(cardEl);
                     currentTop += spacing[i];
                 });
-                
+
                 tableauEl.appendChild(columnEl);
             }
         }
-        
+
         loadSettings();
         newGame();
     </script>
