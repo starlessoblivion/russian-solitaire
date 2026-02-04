@@ -2681,14 +2681,14 @@
             if (!tutorialMode) return;
 
             // After first ace moved to foundation, ask about auto-move aces
-            if (card.value === 'A' && !tutorialPromptedAutoAces && !autoMoveAces) {
+            if (card.value === 'A' && !tutorialPromptedAutoAces) {
                 tutorialPromptedAutoAces = true;
                 setTimeout(() => showTutorialSettingPrompt('autoMoveAces'), 400);
                 return;
             }
 
             // After first 2 moved to foundation, ask about auto-move to foundation
-            if (card.value === '2' && !tutorialPromptedAutoFoundation && !autoMoveFoundation) {
+            if (card.value === '2' && !tutorialPromptedAutoFoundation) {
                 tutorialPromptedAutoFoundation = true;
                 setTimeout(() => showTutorialSettingPrompt('autoMoveFoundation'), 400);
                 return;
@@ -2714,15 +2714,27 @@
             if (setting === 'autoMoveAces') {
                 stepEl.textContent = 'Tip';
                 titleEl.textContent = 'Auto-Move Aces';
-                textEl.textContent = 'Would you like Aces to automatically move to the foundation when they become available?';
-                toggleLabel.textContent = 'Enable Auto-Move Aces';
-                toggleInput.checked = false;
+                if (autoMoveAces) {
+                    textEl.textContent = 'Auto-Move Aces is currently enabled. Aces will automatically move to the foundation. Would you like to keep this enabled?';
+                    toggleLabel.textContent = 'Auto-Move Aces';
+                    toggleInput.checked = true;
+                } else {
+                    textEl.textContent = 'Would you like Aces to automatically move to the foundation when they become available?';
+                    toggleLabel.textContent = 'Auto-Move Aces';
+                    toggleInput.checked = false;
+                }
             } else if (setting === 'autoMoveFoundation') {
                 stepEl.textContent = 'Tip';
                 titleEl.textContent = 'Auto-Move to Foundation';
-                textEl.textContent = 'Would you like cards to automatically move to the foundation when they can be placed there?';
-                toggleLabel.textContent = 'Enable Auto-Move to Foundation';
-                toggleInput.checked = false;
+                if (autoMoveFoundation) {
+                    textEl.textContent = 'Auto-Move to Foundation is currently enabled. Cards will automatically move to the foundation when possible. Would you like to keep this enabled?';
+                    toggleLabel.textContent = 'Auto-Move to Foundation';
+                    toggleInput.checked = true;
+                } else {
+                    textEl.textContent = 'Would you like cards to automatically move to the foundation when they can be placed there?';
+                    toggleLabel.textContent = 'Auto-Move to Foundation';
+                    toggleInput.checked = false;
+                }
             }
 
             toggleContainer.style.display = 'block';
@@ -2739,14 +2751,14 @@
             const toggleContainer = document.getElementById('tutorialToggle');
             const nextBtn = document.getElementById('tutorialNextBtn');
 
-            // Save the setting if toggle is on
-            if (tutorialSettingPrompt === 'autoMoveAces' && toggleInput.checked) {
-                autoMoveAces = true;
-                document.getElementById('autoMoveAces').checked = true;
+            // Save the setting based on toggle state
+            if (tutorialSettingPrompt === 'autoMoveAces') {
+                autoMoveAces = toggleInput.checked;
+                document.getElementById('autoMoveAces').checked = autoMoveAces;
                 saveSettings();
-            } else if (tutorialSettingPrompt === 'autoMoveFoundation' && toggleInput.checked) {
-                autoMoveFoundation = true;
-                document.getElementById('autoMoveFoundation').checked = true;
+            } else if (tutorialSettingPrompt === 'autoMoveFoundation') {
+                autoMoveFoundation = toggleInput.checked;
+                document.getElementById('autoMoveFoundation').checked = autoMoveFoundation;
                 saveSettings();
             }
 
@@ -3400,8 +3412,7 @@
 
         // Animated auto-move to foundation
         function tryAutoMoveToFoundation() {
-            // Disable auto-moves during tutorial, dealing, waiting for first move, or already animating
-            if (tutorialMode) return false;
+            // Disable auto-moves during dealing, waiting for first move, or already animating
             if (isDealing || waitingForFirstMove) return false;
             if (!autoMoveAces && !autoMoveFoundation) return false;
             if (isAutoMoving) return false;
@@ -3416,8 +3427,12 @@
                     let shouldMove = false;
 
                     if (!foundationTop && topCard.value === 'A' && autoMoveAces) {
+                        // In tutorial, only auto-move aces after user has been prompted
+                        if (tutorialMode && !tutorialPromptedAutoAces) continue;
                         shouldMove = true;
                     } else if (foundationTop && topCard.suit === foundationTop.suit && topCard.valueNum === foundationTop.valueNum + 1 && autoMoveFoundation) {
+                        // In tutorial, only auto-move to foundation after user has been prompted
+                        if (tutorialMode && !tutorialPromptedAutoFoundation) continue;
                         shouldMove = true;
                     }
 
