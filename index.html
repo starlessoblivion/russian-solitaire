@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russian Solitaire</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a5f3c;
+            min-height: 100vh;
+            padding: 10px;
+        }
+        
+        .game-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            background: #ffd700;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background: #ffed4a;
+        }
+        
+        .foundations {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+        
+        .foundation {
+            width: 60px;
+            height: 90px;
+            background: rgba(255,255,255,0.1);
+            border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.5);
+        }
+        
+        .tableau {
+            display: flex;
+            justify-content: space-between;
+            gap: 5px;
+        }
+        
+        .column {
+            width: 90px;
+            min-height: 400px;
+            position: relative;
+        }
+        
+        .card {
+            width: 80px;
+            height: 50px;
+            background: #fff;
+            border-radius: 6px;
+            position: absolute;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .card.selected {
+            box-shadow: 0 0 0 3px #ffd700, 0 4px 8px rgba(0,0,0,0.4);
+            z-index: 100 !important;
+        }
+        
+        .card.red { color: #d40000; }
+        .card.black { color: #000; }
+        
+        .card.face-down {
+            background: linear-gradient(135deg, #1a4a8a 25%, #2a5a9a 25%, #2a5a9a 50%, #1a4a8a 50%, #1a4a8a 75%, #2a6aaa 75%);
+            background-size: 10px 10px;
+        }
+        
+        .card .suit { font-size: 0.7rem; }
+        
+        .message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: #fff;
+            padding: 30px 50px;
+            border-radius: 15px;
+            font-size: 1.5rem;
+            text-align: center;
+            display: none;
+            z-index: 1000;
+        }
+        
+        .message.show { display: block; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Russian Solitaire</h1>
+        <div class="controls">
+            <button onclick="newGame()">New Game</button>
+            <button onclick="autoMove()">Auto Move</button>
+        </div>
+        <div class="foundations" id="foundations"></div>
+        <div class="tableau" id="tableau"></div>
+    </div>
+    <div class="message" id="message"></div>
+    
+    <script>
+        const suits = ['♠', '♥', '♦', '♣'];
+        const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        
+        let foundations = [[], [], [], []];
+        let tableau = [[], [], [], [], [], [], [], []];
+        let selected = null;
+        
+        function newGame() {
+            let deck = [];
+            for (let s = 0; s < 4; s++) {
+                for (let v = 0; v < 13; v++) {
+                    deck.push({
+                        suit: suits[s],
+                        value: values[v],
+                        valueNum: v + 1,
+                        color: (s === 1 || s === 2) ? 'red' : 'black'
+                    });
+                }
+            }
+            
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+            
+            foundations = [[], [], [], []];
+            tableau = [[], [], [], [], [], [], [], []];
+            
+            const layout = [1, 6, 7, 8, 9, 10, 11];
+            let cardIndex = 0;
+            
+            for (let col = 0; col < 7; col++) {
+                for (let i = 0; i < layout[col]; i++) {
+                    let card = deck[cardIndex++];
+                    card.faceDown = (i < layout[col] - 1);
+                    tableau[col].push(card);
+                }
+            }
+            
+            selected = null;
+            render();
+        }
+        
+        function render() {
+            const foundationsEl = document.getElementById('foundations');
+            foundationsEl.innerHTML = '';
+            for (let i = 0; i < 4; i++) {
+                const f = foundations[i];
+                const top = f[f.length - 1];
+                const div = document.createElement('div');
+                div.className = 'foundation';
+                div.innerHTML = top ? top.value + top.suit : 'A ' + suits[i];
+                foundationsEl.appendChild(div);
+            }
+            
+            const tableauEl = document.getElementById('tableau');
+            tableauEl.innerHTML = '';
+            
+            for (let col = 0; col < 7; col++) {
+                const columnEl = document.createElement('div');
+                columnEl.className = 'column';
+                
+                tableau[col].forEach((card, i) => {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = 'card ' + (card.faceDown ? 'face-down' : card.color);
+                    cardEl.style.top = (i * 25) + 'px';
+                    cardEl.style.zIndex = i;
+                    
+                    if (!card.faceDown) {
+                        cardEl.innerHTML = card.value + '<span class="suit">' + card.suit + '</span>';
+                    }
+                    
+                    if (selected && selected.col === col && selected.index === i) {
+                        cardEl.classList.add('selected');
+                    }
+                    
+                    cardEl.onclick = () => handleClick(col, i);
+                    columnEl.appendChild(cardEl);
+                });
+                
+                tableauEl.appendChild(columnEl);
+            }
+        }
+        
+        function handleClick(col, index) {
+            const card = tableau[col][index];
+            if (card.faceDown) return;
+            
+            if (selected) {
+                // Try foundation
+                for (let f = 0; f < 4; f++) {
+                    const top = foundations[f][foundations[f].length - 1];
+                    if ((!top && card.value === 'A' && suits[f] === card.suit) ||
+                        (top && card.suit === top.suit && card.valueNum === top.valueNum + 1)) {
+                        foundations[f].push(card);
+                        tableau[col].splice(index, 1);
+                        selected = null;
+                        checkWin();
+                        render();
+                        return;
+                    }
+                }
+                
+                // Try tableau
+                const selectedCard = tableau[selected.col][selected.index];
+                if (col !== selected.col) {
+                    const targetTop = tableau[col][tableau[col].length - 1];
+                    if ((!targetTop && selectedCard.value === 'K') ||
+                        (targetTop && targetTop.suit === selectedCard.suit && targetTop.valueNum === selectedCard.valueNum + 1)) {
+                        const cards = tableau[selected.col].splice(selected.index);
+                        tableau[col].push(...cards);
+                        selected = null;
+                        render();
+                        return;
+                    }
+                }
+                
+                selected = null;
+                render();
+            } else {
+                selected = { col, index };
+                render();
+            }
+        }
+        
+        function checkWin() {
+            const total = foundations.reduce((sum, f) => sum + f.length, 0);
+            if (total === 52) {
+                const el = document.getElementById('message');
+                el.textContent = 'You Win!';
+                el.classList.add('show');
+                setTimeout(() => el.classList.remove('show'), 3000);
+            }
+        }
+        
+        function autoMove() {
+            let moved = true;
+            while (moved) {
+                moved = false;
+                for (let col = 0; col < 7; col++) {
+                    if (tableau[col].length === 0) continue;
+                    const card = tableau[col][tableau[col].length - 1];
+                    if (card.faceDown) continue;
+                    
+                    for (let f = 0; f < 4; f++) {
+                        const top = foundations[f][foundations[f].length - 1];
+                        if ((!top && card.value === 'A' && suits[f] === card.suit) ||
+                            (top && card.suit === top.suit && card.valueNum === top.valueNum + 1)) {
+                            foundations[f].push(card);
+                            tableau[col].pop();
+                            moved = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            checkWin();
+            render();
+        }
+        
+        newGame();
+    </script>
+</body>
+</html>
