@@ -356,6 +356,48 @@
             transition: all 0.6s cubic-bezier(0.25, 0.1, 0.25, 1);
         }
 
+        /* Dealer animation */
+        .dealer-deck {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1600;
+            pointer-events: none;
+        }
+
+        .dealing-card {
+            position: fixed;
+            width: 48px;
+            aspect-ratio: 5/7;
+            z-index: 1500;
+            pointer-events: none;
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-origin: center center;
+        }
+
+        .dealing-card.dealt {
+            z-index: 1;
+        }
+
+        /* Deck stack appearance */
+        .deck-stack {
+            position: fixed;
+            top: 8px;
+            right: 8px;
+            width: 48px;
+            aspect-ratio: 5/7;
+            z-index: 1600;
+        }
+
+        .deck-card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 6px;
+            box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        }
+
         .column.valid-drop-target {
             background: rgba(0, 255, 0, 0.15);
         }
@@ -1710,7 +1752,11 @@
             });
         }
 
-        function newGame() {
+        let isDealing = false;
+
+        function newGame(skipAnimation = false) {
+            if (isDealing) return;
+
             clearGameState();
             const deck = createDeck();
             foundations = [[], [], [], []];
@@ -1740,9 +1786,234 @@
 
             hideGameOver();
             endTutorial();
+
+            if (skipAnimation) {
+                render();
+                saveGameState();
+                setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+            } else {
+                dealCardsAnimation();
+            }
+        }
+
+        function dealCardsAnimation() {
+            isDealing = true;
+
+            // First render empty board
+            const savedTableau = tableau.map(col => [...col]);
+            tableau = [[], [], [], [], [], [], []];
             render();
-            saveGameState();
-            setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+
+            // Create deck stack in top-right corner
+            const deckStack = document.createElement('div');
+            deckStack.className = 'deck-stack';
+            deckStack.id = 'dealerDeck';
+
+            // Add visual deck cards (showing stack depth)
+            const cardBackColors = getCardBackColors();
+            for (let i = 0; i < 5; i++) {
+                const deckCard = document.createElement('div');
+                deckCard.className = 'deck-card';
+                deckCard.style.background = `linear-gradient(135deg, ${cardBackColors.primary} 25%, ${cardBackColors.light} 50%, ${cardBackColors.primary} 75%)`;
+                deckCard.style.backgroundSize = '8px 8px';
+                deckCard.style.border = `2px solid ${cardBackColors.border}`;
+                deckCard.style.top = (-i * 2) + 'px';
+                deckCard.style.left = (i * 0.5) + 'px';
+                deckStack.appendChild(deckCard);
+            }
+            document.body.appendChild(deckStack);
+
+            const deckRect = deckStack.getBoundingClientRect();
+            const deckX = deckRect.left + deckRect.width / 2;
+            const deckY = deckRect.top + deckRect.height / 2;
+
+            // Build deal order: deal like real solitaire (one card to each column, repeat)
+            const dealOrder = [];
+            const totals = [1, 6, 7, 8, 9, 10, 11];
+
+            // Deal face-down cards first (round by round)
+            const maxFaceDown = 6;
+            for (let round = 0; round < maxFaceDown; round++) {
+                for (let col = round + 1; col < 7; col++) {
+                    const faceDownCount = col;
+                    if (round < faceDownCount) {
+                        dealOrder.push({ col, index: round, faceDown: true });
+                    }
+                }
+            }
+
+            // Then deal face-up cards (5 to each column except first which gets 1)
+            const faceUps = [1, 5, 5, 5, 5, 5, 5];
+            for (let round = 0; round < 5; round++) {
+                for (let col = 0; col < 7; col++) {
+                    const faceDownCount = col === 0 ? 0 : col;
+                    const faceUpStart = faceDownCount;
+                    const faceUpCount = faceUps[col];
+                    if (round < faceUpCount) {
+                        dealOrder.push({ col, index: faceDownCount + round, faceDown: false });
+                    }
+                }
+            }
+
+            // Restore tableau data
+            tableau = savedTableau;
+
+            // Deal cards with animation
+            let dealIndex = 0;
+            const dealDelay = 40; // ms between cards
+
+            function dealNextCard() {
+                if (dealIndex >= dealOrder.length) {
+                    // Animation complete
+                    deckStack.remove();
+                    isDealing = false;
+                    render();
+                    saveGameState();
+                    setTimeout(() => tryAutoMoveToFoundationAnimated(), 300);
+                    return;
+                }
+
+                const { col, index, faceDown } = dealOrder[dealIndex];
+                const card = tableau[col][index];
+
+                // Get target position
+                const tableauEl = document.getElementById('tableau');
+                const columns = tableauEl.querySelectorAll('.column');
+                const targetCol = columns[col];
+
+                if (!targetCol) {
+                    dealIndex++;
+                    dealNextCard();
+                    return;
+                }
+
+                const colRect = targetCol.getBoundingClientRect();
+                const spacing = calculateSpacing(tableau[col].slice(0, index + 1));
+                let targetY = colRect.top;
+                for (let i = 0; i < index; i++) {
+                    targetY += spacing[i] || 0;
+                }
+                const targetX = colRect.left;
+
+                // Create flying card
+                const flyingCard = document.createElement('div');
+                flyingCard.className = 'dealing-card card';
+                const cardBackColors = getCardBackColors();
+
+                if (faceDown) {
+                    flyingCard.style.background = `linear-gradient(135deg, ${cardBackColors.primary} 25%, ${cardBackColors.light} 50%, ${cardBackColors.primary} 75%)`;
+                    flyingCard.style.backgroundSize = '8px 8px';
+                    flyingCard.style.border = `2px solid ${cardBackColors.border}`;
+                } else {
+                    const colors = getCardFaceColors();
+                    const textColor = card.color === 'red' ? colors.red : colors.black;
+                    flyingCard.style.background = colors.bg;
+                    flyingCard.style.border = `1px solid ${colors.border}`;
+                    flyingCard.innerHTML = `<div class="card-inner" style="color: ${textColor};">
+                        <div class="card-corner top-left">
+                            <span class="corner-value">${card.value}</span>
+                            <span class="corner-suit">${card.suit}</span>
+                        </div>
+                        <div class="card-center">${card.suit}</div>
+                        <div class="card-corner bottom-right">
+                            <span class="corner-value">${card.value}</span>
+                            <span class="corner-suit">${card.suit}</span>
+                        </div>
+                    </div>`;
+                }
+
+                flyingCard.style.borderRadius = '6px';
+                flyingCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+
+                // Start position (from deck)
+                flyingCard.style.left = (deckX - 24) + 'px';
+                flyingCard.style.top = (deckY - 34) + 'px';
+                flyingCard.style.transform = 'rotate(-5deg) scale(0.9)';
+                flyingCard.style.opacity = '1';
+
+                document.body.appendChild(flyingCard);
+
+                // Trigger animation to target
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        flyingCard.style.left = targetX + 'px';
+                        flyingCard.style.top = targetY + 'px';
+                        flyingCard.style.transform = 'rotate(0deg) scale(1)';
+                        flyingCard.style.zIndex = 1000 + index;
+                    });
+                });
+
+                // Remove flying card after animation and update render
+                setTimeout(() => {
+                    flyingCard.remove();
+                    // Partial render to show dealt cards
+                    renderPartialTableau(col, index + 1);
+                }, 350);
+
+                dealIndex++;
+                setTimeout(dealNextCard, dealDelay);
+            }
+
+            // Start dealing
+            setTimeout(dealNextCard, 200);
+        }
+
+        function renderPartialTableau(upToCol, upToIndex) {
+            const tableauEl = document.getElementById('tableau');
+            const columns = tableauEl.querySelectorAll('.column');
+
+            for (let col = 0; col <= upToCol; col++) {
+                const columnEl = columns[col];
+                if (!columnEl) continue;
+
+                const maxIndex = (col === upToCol) ? upToIndex : tableau[col].length;
+                columnEl.innerHTML = '';
+
+                // Add placeholder if column would be empty
+                if (maxIndex === 0) {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'column-placeholder';
+                    placeholder.innerHTML = 'K';
+                    columnEl.appendChild(placeholder);
+                    continue;
+                }
+
+                const spacing = calculateSpacing(tableau[col].slice(0, maxIndex));
+                let currentTop = 0;
+
+                for (let i = 0; i < maxIndex; i++) {
+                    const card = tableau[col][i];
+                    const cardEl = document.createElement('div');
+                    cardEl.className = getCardClasses(card, card.faceDown);
+                    cardEl.style.top = currentTop + 'px';
+                    cardEl.style.zIndex = i;
+
+                    if (!card.faceDown) {
+                        cardEl.style.cssText += getCardStyle(card);
+                        cardEl.innerHTML = renderCardContent(card);
+                    }
+
+                    columnEl.appendChild(cardEl);
+                    currentTop += spacing[i] || 0;
+                }
+            }
+        }
+
+        function getCardBackColors() {
+            const cardBack = themes.cardBacks.find(cb => cb.id === currentTheme.cardBack) || themes.cardBacks[0];
+            return {
+                primary: cardBack.color,
+                light: lighten(cardBack.color),
+                border: darken(cardBack.color)
+            };
+        }
+
+        function darken(color) {
+            const num = parseInt(color.slice(1), 16);
+            const r = Math.max(0, ((num >> 16) & 255) - 30);
+            const g = Math.max(0, ((num >> 8) & 255) - 30);
+            const b = Math.max(0, (num & 255) - 30);
+            return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
         }
 
         // Tutorial functions
