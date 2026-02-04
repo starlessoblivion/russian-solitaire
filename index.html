@@ -302,7 +302,7 @@
             position: fixed;
             z-index: 1500;
             pointer-events: none;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.6s cubic-bezier(0.25, 0.1, 0.25, 1);
         }
 
         .column.valid-drop-target {
@@ -2110,7 +2110,7 @@
             flyingCard.style.pointerEvents = 'none';
             flyingCard.style.borderRadius = '6px';
             flyingCard.style.boxShadow = '0 4px 12px rgba(0,0,0,0.4)';
-            flyingCard.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+            flyingCard.style.transition = 'all 0.6s cubic-bezier(0.25, 0.1, 0.25, 1)';
 
             document.body.appendChild(flyingCard);
 
@@ -2129,7 +2129,7 @@
             setTimeout(() => {
                 flyingCard.remove();
                 callback();
-            }, 400);
+            }, 600);
         }
 
         // Animated auto-move to foundation
@@ -2162,7 +2162,7 @@
 
                         // Add delay for aces to make the auto-move more visible
                         const isAce = topCard.value === 'A';
-                        const moveDelay = isAce ? 250 : 0;
+                        const moveDelay = isAce ? 500 : 300;
 
                         setTimeout(() => {
                             animateCardToTarget(sourceCardEl, targetEl, () => {
@@ -2172,7 +2172,7 @@
                                 moveCount++;
                                 checkGameState();
                                 render();
-                                setTimeout(() => tryAutoMoveToFoundationAnimated(), 200);
+                                setTimeout(() => tryAutoMoveToFoundationAnimated(), 400);
                             });
                         }, moveDelay);
 
