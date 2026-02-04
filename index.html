@@ -719,18 +719,18 @@
             bottom: 90px;
             left: 8px;
             right: 8px;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.95);
             border: 2px solid #ffd700;
             border-radius: 12px;
             padding: 16px;
             color: #fff;
-            z-index: 500;
+            z-index: 900;
             display: none;
             animation: slideUp 0.3s ease;
         }
 
         .tutorial-dialogue.show {
-            display: block;
+            display: block !important;
         }
 
         @keyframes slideUp {
@@ -1452,39 +1452,53 @@
         }
 
         function startTutorial() {
-            tutorialMode = true;
-            tutorialStep = 0;
-            foundations = [[], [], [], []];
-            tableau = [[], [], [], [], [], [], []];
-            selected = null;
-            hintActive = false;
-            moveHistory = [];
-            moveCount = 0;
-            gameStartTime = Date.now();
-            gameEnded = false;
+            try {
+                tutorialMode = true;
+                tutorialStep = 0;
+                foundations = [[], [], [], []];
+                tableau = [[], [], [], [], [], [], []];
+                selected = null;
+                hintActive = false;
+                moveHistory = [];
+                moveCount = 0;
+                gameStartTime = Date.now();
+                gameEnded = false;
 
-            // Deal a full 52-card deck with high win probability
-            const deck = createFavorableDeck();
+                // Deal a full 52-card deck with high win probability
+                let deck = createFavorableDeck();
 
-            const totals = [1, 6, 7, 8, 9, 10, 11];
-            const faceUps = [1, 5, 5, 5, 5, 5, 5];
-            let cardIndex = 0;
-
-            for (let col = 0; col < 7; col++) {
-                const total = totals[col];
-                const faceUpCount = faceUps[col];
-                const faceDownCount = total - faceUpCount;
-
-                for (let i = 0; i < total; i++) {
-                    let card = deck[cardIndex++];
-                    card.faceDown = (i < faceDownCount);
-                    tableau[col].push(card);
+                // Fallback to regular deck if favorable deck has issues
+                if (!deck || deck.length !== 52) {
+                    console.warn('Favorable deck issue, using regular deck');
+                    deck = createDeck();
                 }
-            }
 
-            hideGameOver();
-            render();
-            showTutorialStep();
+                const totals = [1, 6, 7, 8, 9, 10, 11];
+                const faceUps = [1, 5, 5, 5, 5, 5, 5];
+                let cardIndex = 0;
+
+                for (let col = 0; col < 7; col++) {
+                    const total = totals[col];
+                    const faceUpCount = faceUps[col];
+                    const faceDownCount = total - faceUpCount;
+
+                    for (let i = 0; i < total; i++) {
+                        let card = deck[cardIndex++];
+                        if (card) {
+                            card.faceDown = (i < faceDownCount);
+                            tableau[col].push(card);
+                        }
+                    }
+                }
+
+                hideGameOver();
+                render();
+                showTutorialStep();
+            } catch (error) {
+                console.error('Tutorial error:', error);
+                // Fallback: just start a normal game
+                newGame();
+            }
         }
 
         function createFavorableDeck() {
@@ -1531,18 +1545,19 @@
             // Col 0: 0 face-down, Col 1: 1, Col 2: 2, Col 3: 3, Col 4: 4, Col 5: 5, Col 6: 6
             // Total face-down = 1+2+3+4+5+6 = 21
 
-            let faceDownPool = [...highCards, ...midCards.slice(0, 9)]; // 16 + 9 = 25, need 21
+            // We need exactly 21 face-down and 31 face-up cards
+            let faceDownPool = [...highCards, ...midCards.slice(0, 5)]; // 16 + 5 = 21 exactly
             shuffle(faceDownPool);
-            faceDownPool = faceDownPool.slice(0, 21);
 
-            // Face-up cards: aces first, then low cards, then remaining mid cards
-            let remainingMid = midCards.slice(9);
-            let faceUpPool = [...aces, ...lowCards, ...remainingMid];
+            // Face-up cards: aces, low cards, remaining mid cards
+            let faceUpPool = [...aces, ...lowCards, ...midCards.slice(5)]; // 4 + 12 + 15 = 31 exactly
 
-            // Add any high cards not used in face-down
-            let usedHighCards = new Set(faceDownPool.filter(c => c.valueNum >= 10).map(c => c.suit + c.value));
-            let remainingHigh = highCards.filter(c => !usedHighCards.has(c.suit + c.value));
-            faceUpPool.push(...remainingHigh);
+            // Verify counts
+            if (faceDownPool.length !== 21 || faceUpPool.length !== 31) {
+                console.warn('Deck count mismatch, using simple approach');
+                faceDownPool = [...highCards, ...midCards.slice(0, 5)];
+                faceUpPool = [...aces, ...lowCards, ...midCards.slice(5)];
+            }
 
             // Shuffle face-up pool but keep aces near the front (more likely to be accessible)
             let acesInPool = faceUpPool.filter(c => c.value === 'A');
@@ -1702,9 +1717,16 @@
                 tutorialHighlights.cards.push({ col: move.col, index: move.index });
                 tutorialHighlights.targetCards.push({ col: move.targetCol, index: move.targetIndex });
                 nextBtn.style.display = 'none';
+            } else if (tutorialStep > 0) {
+                // Fallback - no specific move detected but not game over
+                stepEl.textContent = "Keep Playing";
+                titleEl.textContent = "Look for Moves";
+                textEl.textContent = "Look for cards you can move. Remember: same suit, descending order in tableau, ascending in foundations.";
+                nextBtn.style.display = 'none';
             }
 
             dialogue.classList.add('show');
+            dialogue.style.display = 'block';
             render();
         }
 
@@ -1743,6 +1765,7 @@
             };
 
             dialogue.classList.add('show');
+            dialogue.style.display = 'block';
             render();
         }
 
@@ -1838,7 +1861,9 @@
             tutorialMode = false;
             tutorialStep = 0;
             tutorialHighlights = { cards: [], foundations: [], columns: [], targetCards: [] };
-            document.getElementById('tutorialDialogue').classList.remove('show');
+            const dialogue = document.getElementById('tutorialDialogue');
+            dialogue.classList.remove('show');
+            dialogue.style.display = 'none';
             document.body.classList.remove('tutorial-active');
             // Reset the next button onclick
             document.getElementById('tutorialNextBtn').onclick = nextTutorialStep;
