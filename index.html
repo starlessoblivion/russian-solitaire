@@ -19,6 +19,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            touch-action: manipulation;
         }
 
         html, body {
@@ -26,6 +27,7 @@
             height: 100dvh;
             overflow: hidden;
             overscroll-behavior: none;
+            touch-action: none;
         }
 
         body {
@@ -37,12 +39,15 @@
             user-select: none;
             overscroll-behavior: none;
             transition: background 0.3s ease;
+            touch-action: none;
+            -webkit-overflow-scrolling: none;
         }
 
         .game-container {
             height: calc(100% - 55px - env(safe-area-inset-bottom));
             display: flex;
             flex-direction: column;
+            touch-action: none;
         }
 
         .top-section {
@@ -102,6 +107,7 @@
             justify-content: space-between;
             gap: 3px;
             padding: 3px;
+            min-height: 0;
         }
 
         .column {
@@ -110,6 +116,7 @@
             position: relative;
             cursor: pointer;
             border-radius: 4px;
+            overflow: hidden;
         }
 
         .column.drop-target {
@@ -161,6 +168,7 @@
         .card.selected {
             box-shadow: 0 0 0 2px #ffd700, 0 2px 4px rgba(255,215,0,0.5);
             transform: scale(1.03);
+            z-index: 100 !important;
         }
 
         .card.hint-highlight {
@@ -200,9 +208,10 @@
             background: rgba(0,0,0,0.3);
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 0 15px;
-            padding-bottom: max(15px, env(safe-area-inset-bottom));
+            justify-content: center;
+            gap: 8px;
+            padding: 0 10px;
+            padding-bottom: max(10px, env(safe-area-inset-bottom));
             z-index: 100;
         }
 
@@ -220,17 +229,10 @@
             transform: scale(0.95);
         }
 
-        .bottom-bar .settings-btn {
-            background: none;
-            font-size: 1.5rem;
-            padding: 5px 10px;
-            opacity: 0.9;
-        }
-
         .bottom-bar .icon-btn {
             background: none;
-            font-size: 1.5rem;
-            padding: 8px 12px;
+            font-size: 1.4rem;
+            padding: 6px 10px;
             opacity: 0.9;
         }
 
@@ -256,8 +258,8 @@
             background: #2a2a2a;
             border-radius: 12px;
             padding: 20px;
-            width: 80%;
-            max-width: 300px;
+            width: 85%;
+            max-width: 320px;
             color: #fff;
             position: relative;
             max-height: 85vh;
@@ -294,6 +296,7 @@
             position: relative;
             width: 50px;
             height: 28px;
+            flex-shrink: 0;
         }
 
         .toggle input {
@@ -463,6 +466,49 @@
         .game-over-modal.lose h2 {
             color: #ff6b6b;
         }
+
+        /* Scoreboard */
+        .scoreboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+
+        .scoreboard-table th,
+        .scoreboard-table td {
+            padding: 8px 4px;
+            text-align: center;
+            border-bottom: 1px solid #444;
+        }
+
+        .scoreboard-table th {
+            color: #ffd700;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .scoreboard-table th:hover {
+            background: #333;
+        }
+
+        .scoreboard-table th.sorted {
+            text-decoration: underline;
+        }
+
+        .scoreboard-table tr.win {
+            color: #4CAF50;
+        }
+
+        .scoreboard-table tr.loss {
+            color: #ff6b6b;
+        }
+
+        .no-scores {
+            text-align: center;
+            color: #888;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
@@ -479,7 +525,8 @@
 
     <!-- Bottom Bar -->
     <div class="bottom-bar">
-        <button class="icon-btn settings-btn" onclick="toggleSettings()">⚙️</button>
+        <button class="icon-btn" onclick="toggleSettings()">⚙️</button>
+        <button class="icon-btn" onclick="toggleScoreboard()">🏆</button>
         <button onclick="newGame()">🎮</button>
         <button class="icon-btn" onclick="showHint()">💡</button>
         <button class="icon-btn" onclick="undo()">↩️</button>
@@ -534,6 +581,17 @@
         </div>
     </div>
 
+    <!-- Scoreboard Modal -->
+    <div class="modal-overlay" id="scoreboardModal">
+        <div class="modal">
+            <button class="close-modal" onclick="toggleScoreboard()">×</button>
+            <h2>🏆 Scoreboard</h2>
+            <div id="scoreboardContent"></div>
+            <button class="modal-btn secondary" onclick="clearScoreboard()">Clear History</button>
+            <button class="modal-btn" onclick="toggleScoreboard()">Close</button>
+        </div>
+    </div>
+
     <!-- Game Over Modal -->
     <div class="modal-overlay" id="gameOverModal">
         <div class="modal game-over-modal" id="gameOverContent">
@@ -549,15 +607,21 @@
         const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
         const CARD_HEIGHT = 45;
         const MIN_FACE_DOWN_SPACING = 8;
+        const MIN_FACE_UP_SPACING = 12;
 
         let foundations = [[], [], [], []];
         let tableau = [[], [], [], [], [], [], []];
         let selected = null;
+        let hintActive = false;
         let oneTapMove = false;
         let autoMoveAces = false;
         let autoMoveFoundation = false;
         let moveHistory = [];
         let moveCount = 0;
+        let gameStartTime = null;
+        let gameEnded = false;
+        let scoreboard = [];
+        let scoreboardSort = { column: 'date', ascending: false };
 
         // Theme options
         const themeOptions = {
@@ -582,7 +646,7 @@
                 { id: 'dots', name: 'Dots', bg: 'radial-gradient(circle, #3a6aaa 2px, #1a4a8a 2px)', size: '10px 10px' }
             ],
             cardFaces: [
-                { id: 'white', name: 'White', bg: '#ffffff', border: '#ffffff', red: '#d40000', black: '#000000' },
+                { id: 'white', name: 'White', bg: '#ffffff', border: '#e0e0e0', red: '#d40000', black: '#000000' },
                 { id: 'black', name: 'Black', bg: '#1a1a1a', border: '#333333', red: '#ff4444', black: '#ffffff' }
             ]
         };
@@ -592,6 +656,16 @@
             cardBack: 'classic-blue',
             cardFace: 'white'
         };
+
+        // Prevent pull-to-refresh
+        document.addEventListener('touchmove', function(e) {
+            if (e.target.closest('.modal')) return;
+            e.preventDefault();
+        }, { passive: false });
+
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.closest('.modal')) return;
+        }, { passive: true });
 
         function loadSettings() {
             const saved = localStorage.getItem('russianSolitaireSettings');
@@ -609,6 +683,12 @@
             if (savedTheme) {
                 currentTheme = JSON.parse(savedTheme);
             }
+
+            const savedScoreboard = localStorage.getItem('russianSolitaireScoreboard');
+            if (savedScoreboard) {
+                scoreboard = JSON.parse(savedScoreboard);
+            }
+
             applyTheme();
         }
 
@@ -625,6 +705,10 @@
 
         function saveTheme() {
             localStorage.setItem('russianSolitaireTheme', JSON.stringify(currentTheme));
+        }
+
+        function saveScoreboard() {
+            localStorage.setItem('russianSolitaireScoreboard', JSON.stringify(scoreboard));
         }
 
         function applyTheme() {
@@ -654,6 +738,7 @@
             }
 
             renderThemeOptions();
+            render();
         }
 
         function selectTheme(category, id) {
@@ -665,6 +750,7 @@
         function renderThemeOptions() {
             // Background options
             const bgContainer = document.getElementById('bgOptions');
+            if (!bgContainer) return;
             bgContainer.innerHTML = themeOptions.backgrounds.map(bg => `
                 <div class="theme-option ${currentTheme.background === bg.id ? 'selected' : ''}"
                      style="background: ${bg.color};"
@@ -687,7 +773,7 @@
             const cardFaceContainer = document.getElementById('cardFaceOptions');
             cardFaceContainer.innerHTML = themeOptions.cardFaces.map(cf => `
                 <div class="theme-option card-face ${currentTheme.cardFace === cf.id ? 'selected' : ''}"
-                     style="background: ${cf.bg}; border-color: ${cf.border}; color: ${cf.red};"
+                     style="background: ${cf.bg}; border: 1px solid ${cf.border}; color: ${cf.red};"
                      onclick="selectTheme('cardFace', '${cf.id}')"
                      title="${cf.name}">
                     A♥
@@ -702,6 +788,96 @@
         function toggleThemes() {
             document.getElementById('themesModal').classList.toggle('show');
             renderThemeOptions();
+        }
+
+        function toggleScoreboard() {
+            document.getElementById('scoreboardModal').classList.toggle('show');
+            renderScoreboard();
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            return `${date.getMonth() + 1}/${date.getDate()}`;
+        }
+
+        function sortScoreboard(column) {
+            if (scoreboardSort.column === column) {
+                scoreboardSort.ascending = !scoreboardSort.ascending;
+            } else {
+                scoreboardSort.column = column;
+                scoreboardSort.ascending = column === 'moves' || column === 'time';
+            }
+            renderScoreboard();
+        }
+
+        function renderScoreboard() {
+            const container = document.getElementById('scoreboardContent');
+            if (scoreboard.length === 0) {
+                container.innerHTML = '<p class="no-scores">No games played yet</p>';
+                return;
+            }
+
+            const sorted = [...scoreboard].sort((a, b) => {
+                let aVal = a[scoreboardSort.column];
+                let bVal = b[scoreboardSort.column];
+                if (scoreboardSort.column === 'result') {
+                    aVal = a.win ? 1 : 0;
+                    bVal = b.win ? 1 : 0;
+                }
+                const diff = aVal - bVal;
+                return scoreboardSort.ascending ? diff : -diff;
+            });
+
+            container.innerHTML = `
+                <table class="scoreboard-table">
+                    <thead>
+                        <tr>
+                            <th class="${scoreboardSort.column === 'date' ? 'sorted' : ''}" onclick="sortScoreboard('date')">Date</th>
+                            <th class="${scoreboardSort.column === 'moves' ? 'sorted' : ''}" onclick="sortScoreboard('moves')">Moves</th>
+                            <th class="${scoreboardSort.column === 'time' ? 'sorted' : ''}" onclick="sortScoreboard('time')">Time</th>
+                            <th class="${scoreboardSort.column === 'result' ? 'sorted' : ''}" onclick="sortScoreboard('result')">Result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sorted.slice(0, 20).map(game => `
+                            <tr class="${game.win ? 'win' : 'loss'}">
+                                <td>${formatDate(game.date)}</td>
+                                <td>${game.moves}</td>
+                                <td>${formatTime(game.time)}</td>
+                                <td>${game.win ? '✓ Win' : '✗ Loss'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function clearScoreboard() {
+            if (confirm('Clear all game history?')) {
+                scoreboard = [];
+                saveScoreboard();
+                renderScoreboard();
+            }
+        }
+
+        function addToScoreboard(win) {
+            if (gameEnded) return;
+            gameEnded = true;
+
+            const timeElapsed = Math.floor((Date.now() - gameStartTime) / 1000);
+            scoreboard.push({
+                date: Date.now(),
+                moves: moveCount,
+                time: timeElapsed,
+                win: win
+            });
+            saveScoreboard();
         }
 
         function createDeck() {
@@ -730,6 +906,15 @@
             }
             moveHistory.push(action);
             moveCount++;
+            // Clear hint when user makes a move
+            clearHint();
+        }
+
+        function clearHint() {
+            if (hintActive) {
+                hintActive = false;
+                selected = null;
+            }
         }
 
         function undo() {
@@ -757,7 +942,7 @@
             }
 
             moveCount--;
-            selected = null;
+            clearHint();
             render();
         }
 
@@ -772,7 +957,8 @@
             // Pick a random valid move
             const randomMove = moves[Math.floor(Math.random() * moves.length)];
 
-            // Highlight the card from the move
+            // Highlight the card from the move - stays until user acts
+            hintActive = true;
             if (randomMove.type === 'flip') {
                 selected = { col: randomMove.cardCol, index: tableau[randomMove.cardCol].length - 1 };
             } else {
@@ -780,17 +966,13 @@
             }
 
             render();
-
-            // Clear highlight after 2 seconds
-            setTimeout(() => {
-                selected = null;
-                render();
-            }, 2000);
         }
 
         function calculateSpacing(cards) {
+            if (cards.length === 0) return [];
+
             const tableauEl = document.getElementById('tableau');
-            const availableHeight = tableauEl.clientHeight - 10;
+            const availableHeight = tableauEl.clientHeight - CARD_HEIGHT; // Reserve space for last card
 
             // Count face-down and face-up cards
             let faceDownCount = 0;
@@ -805,34 +987,46 @@
                 }
             }
 
-            // Face-down cards have fixed overlap
-            const faceDownSpacing = MIN_FACE_DOWN_SPACING; // 8px fixed
-
-            // Calculate space needed for face-up cards
-            const faceUpSpace = faceUpCount * CARD_HEIGHT;
-
-            // Total space needed for face-down + face-up
-            const totalNeeded = (faceDownCount * faceDownSpacing) + faceUpSpace;
-
-            if (totalNeeded <= availableHeight) {
-                // Fits - face-up cards get full height, face-down get fixed overlap
-                return cards.map(card => card.faceDown ? faceDownSpacing : CARD_HEIGHT);
+            // If all cards are face-down
+            if (faceUpCount === 0) {
+                faceDownCount = cards.length;
             }
 
-            // Doesn't fit - compress face-up cards to fit, keep face-down overlap fixed
-            const spaceForFaceUp = availableHeight - (faceDownCount * faceDownSpacing);
+            // Calculate minimum needed space
+            const minFaceDownTotal = faceDownCount * MIN_FACE_DOWN_SPACING;
+            const minFaceUpTotal = Math.max(0, faceUpCount - 1) * MIN_FACE_UP_SPACING;
+            const minNeeded = minFaceDownTotal + minFaceUpTotal;
 
-            if (spaceForFaceUp <= 0) {
-                // Even compressed face-up doesn't fit - scale everything
-                const scale = availableHeight / totalNeeded;
-                return cards.map(card =>
-                    card.faceDown ? faceDownSpacing * scale : CARD_HEIGHT * scale
-                );
+            // If even minimum doesn't fit, compress everything proportionally
+            if (minNeeded > availableHeight) {
+                const scale = availableHeight / minNeeded;
+                return cards.map((card, i) => {
+                    if (i === cards.length - 1) return 0; // Last card doesn't need spacing
+                    return card.faceDown ? MIN_FACE_DOWN_SPACING * scale : MIN_FACE_UP_SPACING * scale;
+                });
             }
 
-            const faceUpCompressed = spaceForFaceUp / faceUpCount;
+            // Calculate ideal space
+            const idealFaceUpSpacing = CARD_HEIGHT;
+            const idealFaceUpTotal = Math.max(0, faceUpCount - 1) * idealFaceUpSpacing;
+            const idealNeeded = minFaceDownTotal + idealFaceUpTotal;
 
-            return cards.map(card => card.faceDown ? faceDownSpacing : Math.max(CARD_HEIGHT * 0.7, faceUpCompressed));
+            // If ideal fits, use it
+            if (idealNeeded <= availableHeight) {
+                return cards.map((card, i) => {
+                    if (i === cards.length - 1) return 0;
+                    return card.faceDown ? MIN_FACE_DOWN_SPACING : idealFaceUpSpacing;
+                });
+            }
+
+            // Otherwise, compress face-up cards to fit
+            const spaceForFaceUp = availableHeight - minFaceDownTotal;
+            const faceUpSpacing = faceUpCount > 1 ? spaceForFaceUp / (faceUpCount - 1) : 0;
+
+            return cards.map((card, i) => {
+                if (i === cards.length - 1) return 0;
+                return card.faceDown ? MIN_FACE_DOWN_SPACING : Math.max(MIN_FACE_UP_SPACING, faceUpSpacing);
+            });
         }
 
         function newGame() {
@@ -840,8 +1034,11 @@
             foundations = [[], [], [], []];
             tableau = [[], [], [], [], [], [], []];
             selected = null;
+            hintActive = false;
             moveHistory = [];
             moveCount = 0;
+            gameStartTime = Date.now();
+            gameEnded = false;
 
             const totals = [1, 6, 7, 8, 9, 10, 11];
             const faceUps = [1, 5, 5, 5, 5, 5, 5];
@@ -929,6 +1126,7 @@
             const total = foundations.reduce((sum, f) => sum + f.length, 0);
 
             if (total === 52) {
+                addToScoreboard(true);
                 showGameOver(true);
             }
         }
@@ -953,12 +1151,13 @@
                         if (autoMoveAces) {
                             foundations[f].push(topCard);
                             tableau[col].pop();
-                            saveMove({
+                            moveHistory.push({
                                 type: 'foundation',
                                 fromCol: col,
                                 fromFoundation: f,
                                 card: topCard
                             });
+                            moveCount++;
                             moved = true;
                             break;
                         }
@@ -968,12 +1167,13 @@
                         if (autoMoveFoundation) {
                             foundations[f].push(topCard);
                             tableau[col].pop();
-                            saveMove({
+                            moveHistory.push({
                                 type: 'foundation',
                                 fromCol: col,
                                 fromFoundation: f,
                                 card: topCard
                             });
+                            moveCount++;
                             moved = true;
                             break;
                         }
@@ -996,6 +1196,7 @@
         function checkLoseCondition() {
             const moves = findValidMoves();
             if (moves.length === 0) {
+                addToScoreboard(false);
                 showGameOver(false);
             }
         }
@@ -1006,9 +1207,11 @@
             const title = document.getElementById('gameOverTitle');
             const movesText = document.getElementById('gameOverMoves');
 
+            const timeElapsed = Math.floor((Date.now() - gameStartTime) / 1000);
+
             content.className = 'modal game-over-modal ' + (isWin ? 'win' : 'lose');
             title.textContent = isWin ? '🎉 You Win!' : '😔 No more valid moves';
-            movesText.textContent = `Total moves: ${moveCount}`;
+            movesText.innerHTML = `Moves: ${moveCount}<br>Time: ${formatTime(timeElapsed)}`;
 
             modal.classList.add('show');
         }
@@ -1104,6 +1307,9 @@
             const card = tableau[col][index];
             const isTopCard = index === tableau[col].length - 1;
 
+            // Clear hint on any interaction
+            clearHint();
+
             // Flip face-down card
             if (card.faceDown) {
                 if (isTopCard) {
@@ -1179,6 +1385,7 @@
         }
 
         function handleFoundationClick(fIndex) {
+            clearHint();
             if (!selected || oneTapMove) return;
 
             const card = tableau[selected.col][selected.index];
@@ -1233,6 +1440,7 @@
         }
 
         function handleTableauClick(targetCol) {
+            clearHint();
             if (!selected || oneTapMove) return;
 
             if (selected.col === targetCol) {
@@ -1300,7 +1508,7 @@
                 const f = foundations[i];
                 const top = f[f.length - 1];
                 const div = document.createElement('div');
-                div.className = 'foundation' + (selected && !oneTapMove ? ' drop-target' : '');
+                div.className = 'foundation' + (selected && !oneTapMove && !hintActive ? ' drop-target' : '');
                 if (top) div.classList.add('has-card');
                 div.dataset.type = 'foundation';
                 div.dataset.index = i;
@@ -1319,7 +1527,7 @@
 
             for (let col = 0; col < 7; col++) {
                 const columnEl = document.createElement('div');
-                columnEl.className = 'column' + (selected && !oneTapMove ? ' drop-target' : '');
+                columnEl.className = 'column' + (selected && !oneTapMove && !hintActive ? ' drop-target' : '');
                 columnEl.dataset.type = 'tableau';
                 columnEl.dataset.index = col;
                 columnEl.onclick = () => handleTableauClick(col);
@@ -1340,7 +1548,11 @@
                     }
 
                     if (selected && selected.col === col && selected.index === i) {
-                        cardEl.classList.add('selected');
+                        if (hintActive) {
+                            cardEl.classList.add('hint-highlight');
+                        } else {
+                            cardEl.classList.add('selected');
+                        }
                     }
 
                     cardEl.onclick = (e) => {
@@ -1349,7 +1561,7 @@
                     };
 
                     columnEl.appendChild(cardEl);
-                    currentTop += spacing[i];
+                    currentTop += spacing[i] || 0;
                 });
 
                 tableauEl.appendChild(columnEl);
