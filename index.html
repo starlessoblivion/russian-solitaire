@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Russian Solitaire</title>
     <style>
         * {
@@ -13,6 +13,7 @@
         
         html, body {
             height: 100%;
+            height: 100dvh;
             overflow: hidden;
         }
         
@@ -20,12 +21,13 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #1a5f3c;
             padding: 6px;
+            padding-bottom: 65px;
             -webkit-user-select: none;
             user-select: none;
         }
         
         .game-container {
-            height: calc(100vh - 55px);
+            height: calc(100% - 55px - env(safe-area-inset-bottom));
             display: flex;
             flex-direction: column;
         }
@@ -166,14 +168,18 @@
         
         /* Bottom Bar */
         .bottom-bar {
-            height: 50px;
-            background: rgba(0,0,0,0.2);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 55px;
+            background: rgba(0,0,0,0.3);
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 0 15px;
-            border-radius: 8px;
-            margin-top: 5px;
+            padding-bottom: max(15px, env(safe-area-inset-bottom));
+            z-index: 100;
         }
         
         .bottom-bar button {
