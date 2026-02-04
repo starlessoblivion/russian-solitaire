@@ -1898,9 +1898,10 @@
         function clearHint() {
             if (hintActive) {
                 hintActive = false;
-                resetAutoHintTimer();
                 selected = null;
             }
+            // Always reset auto-hint timer on any interaction
+            resetAutoHintTimer();
         }
 
         function undo() {
