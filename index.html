@@ -5,16 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Russian Solitaire</title>
     <style>
-        :root {
-            --bg-color: #1a5f3c;
-            --card-face-bg: #ffffff;
-            --card-face-border: #e0e0e0;
-            --card-red: #d40000;
-            --card-black: #000000;
-            --card-back-bg: linear-gradient(135deg, #1a4a8a 25%, #2a5a9a 25%, #2a5a9a 50%, #1a4a8a 50%, #1a4a8a 75%, #2a6aaa 75%);
-            --card-back-size: 8px 8px;
-        }
-
         * {
             margin: 0;
             padding: 0;
@@ -32,19 +22,28 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-color);
-            padding: 6px;
-            padding-bottom: 65px;
+            background: #1a5f3c;
+            padding: 8px;
+            padding-bottom: 90px;
             -webkit-user-select: none;
             user-select: none;
             overscroll-behavior: none;
             transition: background 0.3s ease;
             touch-action: none;
-            -webkit-overflow-scrolling: none;
         }
 
+        /* Background themes */
+        body.bg-classic-green { background: #1a5f3c; }
+        body.bg-forest { background: #0d3320; }
+        body.bg-navy { background: #1a2a4a; }
+        body.bg-burgundy { background: #4a1a2a; }
+        body.bg-charcoal { background: #2a2a2a; }
+        body.bg-purple { background: #3a1a4a; }
+        body.bg-teal { background: #1a4a4a; }
+        body.bg-wood { background: #3d2b1f; }
+
         .game-container {
-            height: calc(100% - 55px - env(safe-area-inset-bottom));
+            height: calc(100% - 75px - env(safe-area-inset-bottom));
             display: flex;
             flex-direction: column;
             touch-action: none;
@@ -57,41 +56,39 @@
         .header {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            margin-bottom: 3px;
+            justify-content: center;
+            margin-bottom: 6px;
         }
 
         h1 {
             color: #fff;
-            font-size: 1rem;
-            flex: 1;
+            font-size: 1.1rem;
             text-align: center;
         }
 
         .foundations {
             display: flex;
-            justify-content: space-around;
-            margin-bottom: 6px;
-            gap: 3px;
+            justify-content: center;
+            margin-bottom: 8px;
+            gap: 8px;
         }
 
         .foundation {
-            width: 36px;
+            width: 48px;
             aspect-ratio: 5/7;
-            background: rgba(255,255,255,0.1);
-            border: 2px dashed rgba(255,255,255,0.4);
-            border-radius: 4px;
+            background: rgba(255,255,255,0.15);
+            border: 2px dashed rgba(255,255,255,0.5);
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.55rem;
-            color: rgba(255,255,255,0.6);
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
             cursor: pointer;
         }
 
         .foundation.has-card {
-            background: var(--card-face-bg);
-            border: 1px solid var(--card-face-border);
+            border: none;
             padding: 0;
             overflow: hidden;
         }
@@ -105,18 +102,18 @@
         .tableau {
             flex: 1;
             display: flex;
-            justify-content: space-between;
-            gap: 3px;
-            padding: 3px;
+            justify-content: center;
+            gap: 6px;
+            padding: 4px;
             min-height: 0;
         }
 
         .column {
             flex: 1;
-            max-width: 48px;
+            max-width: 52px;
             position: relative;
             cursor: pointer;
-            border-radius: 4px;
+            border-radius: 6px;
             overflow: visible;
         }
 
@@ -124,31 +121,73 @@
             background: rgba(255,215,0,0.2);
         }
 
+        /* Base card styles */
         .card {
             width: 100%;
             aspect-ratio: 5/7;
-            background: var(--card-face-bg);
-            border-radius: 4px;
+            border-radius: 6px;
             position: absolute;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
             cursor: pointer;
-            border: 1px solid var(--card-face-border);
-            transition: background 0.2s ease, border-color 0.2s ease;
             overflow: hidden;
+            transition: transform 0.15s ease;
         }
 
+        /* Card back patterns */
         .card.face-down {
-            background: var(--card-back-bg);
-            background-size: var(--card-back-size);
+            background: linear-gradient(135deg, #1a4a8a 25%, #2a5a9a 25%, #2a5a9a 50%, #1a4a8a 50%, #1a4a8a 75%, #2a6aaa 75%);
+            background-size: 10px 10px;
+            border: 2px solid #1a3a6a;
+        }
+
+        .card.face-down.back-blue {
+            background: linear-gradient(135deg, #1a4a8a 25%, #2a5a9a 25%, #2a5a9a 50%, #1a4a8a 50%, #1a4a8a 75%, #2a6aaa 75%);
+            background-size: 10px 10px;
+            border-color: #1a3a6a;
+        }
+        .card.face-down.back-red {
+            background: linear-gradient(135deg, #8a1a1a 25%, #9a2a2a 25%, #9a2a2a 50%, #8a1a1a 50%, #8a1a1a 75%, #aa3a3a 75%);
+            background-size: 10px 10px;
+            border-color: #6a1a1a;
+        }
+        .card.face-down.back-green {
+            background: linear-gradient(135deg, #1a6a3a 25%, #2a7a4a 25%, #2a7a4a 50%, #1a6a3a 50%, #1a6a3a 75%, #3a8a5a 75%);
+            background-size: 10px 10px;
+            border-color: #1a4a2a;
+        }
+        .card.face-down.back-purple {
+            background: linear-gradient(135deg, #4a1a6a 25%, #5a2a7a 25%, #5a2a7a 50%, #4a1a6a 50%, #4a1a6a 75%, #6a3a8a 75%);
+            background-size: 10px 10px;
+            border-color: #3a1a4a;
+        }
+        .card.face-down.back-gold {
+            background: linear-gradient(135deg, #8a6a1a 25%, #9a7a2a 25%, #9a7a2a 50%, #8a6a1a 50%, #8a6a1a 75%, #aa8a3a 75%);
+            background-size: 10px 10px;
+            border-color: #6a4a1a;
         }
 
         .card.face-down.exposed {
             border-color: #ffd700;
-            cursor: pointer;
+            border-width: 3px;
         }
 
-        .card.red { color: var(--card-red); }
-        .card.black { color: var(--card-black); }
+        /* WHITE card face theme */
+        .card.face-white {
+            background: #ffffff;
+            border: 1px solid #cccccc;
+        }
+        .card.face-white .card-inner { color: inherit; }
+        .card.face-white.red { color: #cc0000; }
+        .card.face-white.black { color: #000000; }
+
+        /* BLACK card face theme */
+        .card.face-black {
+            background: #1a1a1a;
+            border: 1px solid #444444;
+        }
+        .card.face-black .card-inner { color: inherit; }
+        .card.face-black.red { color: #ff4444; }
+        .card.face-black.black { color: #ffffff; }
 
         .card-inner {
             width: 100%;
@@ -168,22 +207,22 @@
         }
 
         .card-corner.top-left {
-            top: 2px;
-            left: 3px;
+            top: 3px;
+            left: 4px;
         }
 
         .card-corner.bottom-right {
-            bottom: 2px;
-            right: 3px;
+            bottom: 3px;
+            right: 4px;
             transform: rotate(180deg);
         }
 
         .card-corner .corner-value {
-            font-size: 0.6rem;
+            font-size: 0.85rem;
         }
 
         .card-corner .corner-suit {
-            font-size: 0.5rem;
+            font-size: 0.7rem;
             margin-top: -2px;
         }
 
@@ -192,38 +231,22 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.4rem;
-        }
-
-        .card-pips {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-around;
-            align-items: center;
-            padding: 12px 4px;
-            font-size: 0.6rem;
-        }
-
-        .pip-row {
-            display: flex;
-            justify-content: space-around;
-            width: 100%;
+            font-size: 1.8rem;
         }
 
         .card-face-icon {
-            font-size: 1rem;
+            font-size: 1.3rem;
             font-weight: bold;
         }
 
         .card.selected {
-            box-shadow: 0 0 0 2px #ffd700, 0 2px 4px rgba(255,215,0,0.5);
-            transform: scale(1.03);
+            box-shadow: 0 0 0 3px #ffd700, 0 4px 8px rgba(255,215,0,0.5);
+            transform: scale(1.05);
             z-index: 100 !important;
         }
 
         .card.hint-highlight {
-            box-shadow: 0 0 0 3px #00ff00, 0 2px 6px rgba(0,255,0,0.5);
+            box-shadow: 0 0 0 3px #00ff00, 0 4px 8px rgba(0,255,0,0.5);
             animation: pulse 1s infinite;
         }
 
@@ -232,40 +255,49 @@
             50% { transform: scale(1.05); }
         }
 
+        /* Foundation card styles */
         .foundation-card {
             width: 100%;
             height: 100%;
-            background: var(--card-face-bg);
-            border-radius: 2px;
+            border-radius: 4px;
             display: flex;
             flex-direction: column;
             position: relative;
         }
 
-        .foundation-card.red { color: var(--card-red); }
-        .foundation-card.black { color: var(--card-black); }
+        .foundation-card.face-white {
+            background: #ffffff;
+        }
+        .foundation-card.face-white.red { color: #cc0000; }
+        .foundation-card.face-white.black { color: #000000; }
+
+        .foundation-card.face-black {
+            background: #1a1a1a;
+        }
+        .foundation-card.face-black.red { color: #ff4444; }
+        .foundation-card.face-black.black { color: #ffffff; }
 
         .foundation-card .card-corner {
             position: absolute;
         }
 
         .foundation-card .card-corner.top-left {
-            top: 1px;
-            left: 2px;
+            top: 2px;
+            left: 3px;
         }
 
         .foundation-card .card-corner.bottom-right {
-            bottom: 1px;
-            right: 2px;
+            bottom: 2px;
+            right: 3px;
             transform: rotate(180deg);
         }
 
         .foundation-card .card-corner .corner-value {
-            font-size: 0.5rem;
+            font-size: 0.7rem;
         }
 
         .foundation-card .card-corner .corner-suit {
-            font-size: 0.4rem;
+            font-size: 0.55rem;
             margin-top: -1px;
         }
 
@@ -274,45 +306,53 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1rem;
+            font-size: 1.3rem;
         }
 
-        /* Bottom Bar */
+        /* Bottom Bar - Large touch-friendly */
         .bottom-bar {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            height: 55px;
-            background: rgba(0,0,0,0.3);
+            height: 80px;
+            background: rgba(0,0,0,0.4);
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 0 10px;
-            padding-bottom: max(10px, env(safe-area-inset-bottom));
+            justify-content: space-around;
+            padding: 8px 16px;
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
             z-index: 100;
         }
 
         .bottom-bar button {
             background: #ffd700;
             border: none;
-            padding: 8px 16px;
-            font-size: 0.85rem;
+            padding: 14px 24px;
+            font-size: 1.1rem;
             font-weight: bold;
-            border-radius: 6px;
+            border-radius: 12px;
             cursor: pointer;
+            min-width: 56px;
+            min-height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .bottom-bar button:active {
-            transform: scale(0.95);
+            transform: scale(0.92);
+            background: #e6c200;
         }
 
         .bottom-bar .icon-btn {
-            background: none;
-            font-size: 1.4rem;
-            padding: 6px 10px;
-            opacity: 0.9;
+            background: rgba(255,255,255,0.15);
+            font-size: 1.6rem;
+            padding: 12px 16px;
+        }
+
+        .bottom-bar .icon-btn:active {
+            background: rgba(255,255,255,0.25);
         }
 
         /* Settings Modal */
@@ -322,7 +362,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6);
             display: none;
             align-items: center;
             justify-content: center;
@@ -335,10 +375,10 @@
 
         .modal {
             background: #2a2a2a;
-            border-radius: 12px;
-            padding: 20px;
-            width: 85%;
-            max-width: 320px;
+            border-radius: 16px;
+            padding: 24px;
+            width: 90%;
+            max-width: 340px;
             color: #fff;
             position: relative;
             max-height: 85vh;
@@ -346,25 +386,26 @@
         }
 
         .modal h2 {
-            font-size: 1.2rem;
-            margin-bottom: 15px;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
             text-align: center;
         }
 
         .modal h3 {
-            font-size: 0.9rem;
-            margin: 15px 0 10px 0;
+            font-size: 1rem;
+            margin: 18px 0 12px 0;
             color: #aaa;
             border-bottom: 1px solid #444;
-            padding-bottom: 5px;
+            padding-bottom: 6px;
         }
 
         .setting-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 0;
+            padding: 14px 0;
             border-bottom: 1px solid #444;
+            font-size: 1rem;
         }
 
         .setting-row:last-child {
@@ -373,8 +414,8 @@
 
         .toggle {
             position: relative;
-            width: 50px;
-            height: 28px;
+            width: 56px;
+            height: 32px;
             flex-shrink: 0;
         }
 
@@ -392,15 +433,15 @@
             right: 0;
             bottom: 0;
             background: #555;
-            border-radius: 28px;
+            border-radius: 32px;
             transition: 0.3s;
         }
 
         .toggle-slider:before {
             position: absolute;
             content: "";
-            height: 22px;
-            width: 22px;
+            height: 26px;
+            width: 26px;
             left: 3px;
             bottom: 3px;
             background: #fff;
@@ -413,19 +454,19 @@
         }
 
         .toggle input:checked + .toggle-slider:before {
-            transform: translateX(22px);
+            transform: translateX(24px);
         }
 
         .modal-btn {
             width: 100%;
             background: #ffd700;
             border: none;
-            padding: 12px;
-            font-size: 1rem;
+            padding: 16px;
+            font-size: 1.1rem;
             font-weight: bold;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
-            margin-top: 15px;
+            margin-top: 16px;
             color: #000;
         }
 
@@ -444,14 +485,15 @@
 
         .close-modal {
             position: absolute;
-            top: 10px;
-            right: 15px;
+            top: 12px;
+            right: 16px;
             background: none;
             border: none;
             color: #fff;
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             cursor: pointer;
             opacity: 0.7;
+            padding: 8px;
         }
 
         .close-modal:active {
@@ -460,49 +502,49 @@
 
         .hint {
             text-align: center;
-            color: rgba(255,255,255,0.5);
-            font-size: 0.6rem;
-            margin-top: 2px;
+            color: rgba(255,255,255,0.6);
+            font-size: 0.75rem;
+            margin-top: 4px;
         }
 
         /* Theme Options */
         .theme-options {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin-top: 8px;
+            gap: 10px;
+            margin-top: 10px;
         }
 
         .theme-option {
             aspect-ratio: 1;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
-            border: 2px solid transparent;
+            border: 3px solid transparent;
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.6rem;
+            font-size: 0.8rem;
             font-weight: bold;
             position: relative;
             overflow: hidden;
         }
 
         .theme-option:active {
-            transform: scale(0.95);
+            transform: scale(0.92);
         }
 
         .theme-option.selected {
             border-color: #ffd700;
-            box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
         }
 
         .theme-option.card-back {
-            background-size: 6px 6px;
+            background-size: 8px 8px;
         }
 
         .theme-option.card-face {
-            font-size: 0.7rem;
+            font-size: 1rem;
         }
 
         /* Win/Lose Modal */
@@ -511,31 +553,15 @@
             position: relative;
         }
 
-        .game-over-modal .close-modal {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            background: none;
-            border: none;
-            color: #fff;
-            font-size: 1.5rem;
-            cursor: pointer;
-            opacity: 0.7;
-        }
-
-        .game-over-modal .close-modal:active {
-            opacity: 1;
-        }
-
         .game-over-modal h2 {
-            font-size: 2rem;
-            margin-bottom: 10px;
+            font-size: 2.2rem;
+            margin-bottom: 12px;
         }
 
         .game-over-modal .moves-count {
-            font-size: 1rem;
+            font-size: 1.1rem;
             color: #aaa;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .game-over-modal.win h2 {
@@ -550,15 +576,15 @@
         .scoreboard-container {
             max-height: 45vh;
             overflow-y: auto;
-            margin: 10px 0;
+            margin: 12px 0;
             border: 1px solid #444;
-            border-radius: 6px;
+            border-radius: 8px;
         }
 
         .scoreboard-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
         }
 
         .scoreboard-table thead {
@@ -570,7 +596,7 @@
 
         .scoreboard-table th,
         .scoreboard-table td {
-            padding: 8px 4px;
+            padding: 10px 6px;
             text-align: center;
             border-bottom: 1px solid #444;
         }
@@ -600,36 +626,36 @@
         .no-scores {
             text-align: center;
             color: #888;
-            padding: 20px;
+            padding: 24px;
         }
     </style>
 </head>
-<body>
+<body class="bg-classic-green">
     <div class="game-container">
         <div class="top-section">
             <div class="header">
-                <h1>♠️ Russian Solitaire ♥️</h1>
+                <h1>Russian Solitaire</h1>
             </div>
             <div class="foundations" id="foundations"></div>
-            <p class="hint">Tap card to select/move • Tap exposed face-down to flip</p>
+            <p class="hint">Tap to select/move cards</p>
         </div>
         <div class="tableau" id="tableau"></div>
     </div>
 
     <!-- Bottom Bar -->
     <div class="bottom-bar">
-        <button class="icon-btn" onclick="toggleSettings()">⚙️</button>
-        <button class="icon-btn" onclick="toggleScoreboard()">🏆</button>
-        <button onclick="newGame()">🎮</button>
-        <button class="icon-btn" onclick="showHint()">💡</button>
-        <button class="icon-btn" onclick="undo()">↩️</button>
+        <button class="icon-btn" onclick="toggleSettings()">&#9881;</button>
+        <button class="icon-btn" onclick="toggleScoreboard()">&#127942;</button>
+        <button onclick="newGame()">New</button>
+        <button class="icon-btn" onclick="showHint()">&#128161;</button>
+        <button class="icon-btn" onclick="undo()">&#8617;</button>
     </div>
 
     <!-- Settings Modal -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal">
-            <button class="close-modal" onclick="toggleSettings()">×</button>
-            <h2>⚙️ Settings</h2>
+            <button class="close-modal" onclick="toggleSettings()">&times;</button>
+            <h2>Settings</h2>
             <div class="setting-row">
                 <span>One Tap Move</span>
                 <label class="toggle">
@@ -651,15 +677,15 @@
                     <span class="toggle-slider"></span>
                 </label>
             </div>
-            <button class="modal-btn secondary" onclick="toggleSettings(); toggleThemes();">🎨 Customize Theme</button>
+            <button class="modal-btn secondary" onclick="toggleSettings(); toggleThemes();">Customize Theme</button>
         </div>
     </div>
 
     <!-- Themes Modal -->
     <div class="modal-overlay" id="themesModal">
         <div class="modal">
-            <button class="close-modal" onclick="toggleThemes()">×</button>
-            <h2>🎨 Themes</h2>
+            <button class="close-modal" onclick="toggleThemes()">&times;</button>
+            <h2>Themes</h2>
 
             <h3>Background</h3>
             <div class="theme-options" id="bgOptions"></div>
@@ -677,8 +703,8 @@
     <!-- Scoreboard Modal -->
     <div class="modal-overlay" id="scoreboardModal">
         <div class="modal">
-            <button class="close-modal" onclick="toggleScoreboard()">×</button>
-            <h2>🏆 Scoreboard</h2>
+            <button class="close-modal" onclick="toggleScoreboard()">&times;</button>
+            <h2>Scoreboard</h2>
             <div id="scoreboardContent"></div>
             <button class="modal-btn secondary" onclick="clearScoreboard()">Clear History</button>
             <button class="modal-btn" onclick="toggleScoreboard()">Close</button>
@@ -688,7 +714,7 @@
     <!-- Game Over Modal -->
     <div class="modal-overlay" id="gameOverModal">
         <div class="modal game-over-modal" id="gameOverContent">
-            <button class="close-modal" onclick="hideGameOver()">×</button>
+            <button class="close-modal" onclick="hideGameOver()">&times;</button>
             <h2 id="gameOverTitle"></h2>
             <p class="moves-count" id="gameOverMoves"></p>
             <button class="modal-btn" onclick="newGame(); hideGameOver();">New Game</button>
@@ -696,11 +722,11 @@
     </div>
 
     <script>
-        const suits = ['♠', '♥', '♦', '♣'];
+        const suits = ['&#9824;', '&#9829;', '&#9830;', '&#9827;'];
+        const suitChars = ['\u2660', '\u2665', '\u2666', '\u2663'];
         const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-        const CARD_HEIGHT = 70;
-        const MIN_FACE_DOWN_SPACING = 10;
-        const MIN_FACE_UP_SPACING = 18;
+        const MIN_FACE_DOWN_SPACING = 12;
+        const MIN_FACE_UP_SPACING = 22;
 
         let foundations = [[], [], [], []];
         let tableau = [[], [], [], [], [], [], []];
@@ -716,37 +742,34 @@
         let scoreboard = [];
         let scoreboardSort = { column: 'date', ascending: false };
 
-        // Theme options
-        const themeOptions = {
+        // Theme configuration
+        const themes = {
             backgrounds: [
                 { id: 'classic-green', name: 'Classic', color: '#1a5f3c' },
-                { id: 'dark-green', name: 'Forest', color: '#0d3320' },
+                { id: 'forest', name: 'Forest', color: '#0d3320' },
                 { id: 'navy', name: 'Navy', color: '#1a2a4a' },
                 { id: 'burgundy', name: 'Burgundy', color: '#4a1a2a' },
                 { id: 'charcoal', name: 'Charcoal', color: '#2a2a2a' },
                 { id: 'purple', name: 'Purple', color: '#3a1a4a' },
                 { id: 'teal', name: 'Teal', color: '#1a4a4a' },
-                { id: 'brown', name: 'Wood', color: '#3d2b1f' }
+                { id: 'wood', name: 'Wood', color: '#3d2b1f' }
             ],
             cardBacks: [
-                { id: 'classic-blue', name: 'Classic', bg: 'linear-gradient(135deg, #1a4a8a 25%, #2a5a9a 25%, #2a5a9a 50%, #1a4a8a 50%, #1a4a8a 75%, #2a6aaa 75%)', size: '8px 8px' },
-                { id: 'red-pattern', name: 'Red', bg: 'linear-gradient(135deg, #8a1a1a 25%, #9a2a2a 25%, #9a2a2a 50%, #8a1a1a 50%, #8a1a1a 75%, #aa3a3a 75%)', size: '8px 8px' },
-                { id: 'green-pattern', name: 'Green', bg: 'linear-gradient(135deg, #1a6a3a 25%, #2a7a4a 25%, #2a7a4a 50%, #1a6a3a 50%, #1a6a3a 75%, #3a8a5a 75%)', size: '8px 8px' },
-                { id: 'purple-pattern', name: 'Purple', bg: 'linear-gradient(135deg, #4a1a6a 25%, #5a2a7a 25%, #5a2a7a 50%, #4a1a6a 50%, #4a1a6a 75%, #6a3a8a 75%)', size: '8px 8px' },
-                { id: 'gold-pattern', name: 'Gold', bg: 'linear-gradient(135deg, #8a6a1a 25%, #9a7a2a 25%, #9a7a2a 50%, #8a6a1a 50%, #8a6a1a 75%, #aa8a3a 75%)', size: '8px 8px' },
-                { id: 'diamonds', name: 'Diamonds', bg: 'linear-gradient(45deg, #2a4a7a 25%, transparent 25%), linear-gradient(-45deg, #2a4a7a 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #2a4a7a 75%), linear-gradient(-45deg, transparent 75%, #2a4a7a 75%)', size: '12px 12px', extra: '#1a3a6a' },
-                { id: 'stripes', name: 'Stripes', bg: 'repeating-linear-gradient(45deg, #1a4a8a, #1a4a8a 4px, #2a5a9a 4px, #2a5a9a 8px)', size: 'auto' },
-                { id: 'dots', name: 'Dots', bg: 'radial-gradient(circle, #3a6aaa 2px, #1a4a8a 2px)', size: '10px 10px' }
+                { id: 'blue', name: 'Blue', color: '#1a4a8a' },
+                { id: 'red', name: 'Red', color: '#8a1a1a' },
+                { id: 'green', name: 'Green', color: '#1a6a3a' },
+                { id: 'purple', name: 'Purple', color: '#4a1a6a' },
+                { id: 'gold', name: 'Gold', color: '#8a6a1a' }
             ],
             cardFaces: [
-                { id: 'white', name: 'White', bg: '#ffffff', border: '#e0e0e0', red: '#d40000', black: '#000000' },
-                { id: 'black', name: 'Black', bg: '#1a1a1a', border: '#333333', red: '#ff4444', black: '#ffffff' }
+                { id: 'white', name: 'White', bg: '#ffffff', text: '#000000', red: '#cc0000' },
+                { id: 'black', name: 'Black', bg: '#1a1a1a', text: '#ffffff', red: '#ff4444' }
             ]
         };
 
         let currentTheme = {
             background: 'classic-green',
-            cardBack: 'classic-blue',
+            cardBack: 'blue',
             cardFace: 'white'
         };
 
@@ -755,10 +778,6 @@
             if (e.target.closest('.modal')) return;
             e.preventDefault();
         }, { passive: false });
-
-        document.addEventListener('touchstart', function(e) {
-            if (e.target.closest('.modal')) return;
-        }, { passive: true });
 
         function loadSettings() {
             const saved = localStorage.getItem('russianSolitaireSettings');
@@ -790,9 +809,7 @@
             autoMoveAces = document.getElementById('autoMoveAces').checked;
             autoMoveFoundation = document.getElementById('autoMoveFoundation').checked;
             localStorage.setItem('russianSolitaireSettings', JSON.stringify({
-                oneTapMove,
-                autoMoveAces,
-                autoMoveFoundation
+                oneTapMove, autoMoveAces, autoMoveFoundation
             }));
         }
 
@@ -805,30 +822,8 @@
         }
 
         function applyTheme() {
-            const root = document.documentElement;
-
             // Apply background
-            const bg = themeOptions.backgrounds.find(b => b.id === currentTheme.background);
-            if (bg) root.style.setProperty('--bg-color', bg.color);
-
-            // Apply card back
-            const cardBack = themeOptions.cardBacks.find(c => c.id === currentTheme.cardBack);
-            if (cardBack) {
-                root.style.setProperty('--card-back-bg', cardBack.bg);
-                root.style.setProperty('--card-back-size', cardBack.size);
-                if (cardBack.extra) {
-                    root.style.setProperty('--card-back-extra', cardBack.extra);
-                }
-            }
-
-            // Apply card face
-            const cardFace = themeOptions.cardFaces.find(c => c.id === currentTheme.cardFace);
-            if (cardFace) {
-                root.style.setProperty('--card-face-bg', cardFace.bg);
-                root.style.setProperty('--card-face-border', cardFace.border);
-                root.style.setProperty('--card-red', cardFace.red);
-                root.style.setProperty('--card-black', cardFace.black);
-            }
+            document.body.className = 'bg-' + currentTheme.background;
 
             renderThemeOptions();
             render();
@@ -841,10 +836,10 @@
         }
 
         function renderThemeOptions() {
-            // Background options
             const bgContainer = document.getElementById('bgOptions');
             if (!bgContainer) return;
-            bgContainer.innerHTML = themeOptions.backgrounds.map(bg => `
+
+            bgContainer.innerHTML = themes.backgrounds.map(bg => `
                 <div class="theme-option ${currentTheme.background === bg.id ? 'selected' : ''}"
                      style="background: ${bg.color};"
                      onclick="selectTheme('background', '${bg.id}')"
@@ -852,26 +847,32 @@
                 </div>
             `).join('');
 
-            // Card back options
             const cardBackContainer = document.getElementById('cardBackOptions');
-            cardBackContainer.innerHTML = themeOptions.cardBacks.map(cb => `
+            cardBackContainer.innerHTML = themes.cardBacks.map(cb => `
                 <div class="theme-option card-back ${currentTheme.cardBack === cb.id ? 'selected' : ''}"
-                     style="background: ${cb.bg}; background-size: ${cb.size};${cb.extra ? ' background-color: ' + cb.extra + ';' : ''}"
+                     style="background: linear-gradient(135deg, ${cb.color} 25%, ${lighten(cb.color)} 50%, ${cb.color} 75%); background-size: 8px 8px;"
                      onclick="selectTheme('cardBack', '${cb.id}')"
                      title="${cb.name}">
                 </div>
             `).join('');
 
-            // Card face options
             const cardFaceContainer = document.getElementById('cardFaceOptions');
-            cardFaceContainer.innerHTML = themeOptions.cardFaces.map(cf => `
+            cardFaceContainer.innerHTML = themes.cardFaces.map(cf => `
                 <div class="theme-option card-face ${currentTheme.cardFace === cf.id ? 'selected' : ''}"
-                     style="background: ${cf.bg}; border: 1px solid ${cf.border}; color: ${cf.red};"
+                     style="background: ${cf.bg}; color: ${cf.red}; border: 2px solid ${cf.id === 'white' ? '#ccc' : '#444'};"
                      onclick="selectTheme('cardFace', '${cf.id}')"
                      title="${cf.name}">
-                    A♥
+                    A&#9829;
                 </div>
             `).join('');
+        }
+
+        function lighten(color) {
+            const num = parseInt(color.slice(1), 16);
+            const r = Math.min(255, ((num >> 16) & 255) + 30);
+            const g = Math.min(255, ((num >> 8) & 255) + 30);
+            const b = Math.min(255, (num & 255) + 30);
+            return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
         }
 
         function toggleSettings() {
@@ -923,8 +924,7 @@
                     aVal = a.win ? 1 : 0;
                     bVal = b.win ? 1 : 0;
                 }
-                const diff = aVal - bVal;
-                return scoreboardSort.ascending ? diff : -diff;
+                return scoreboardSort.ascending ? aVal - bVal : bVal - aVal;
             });
 
             container.innerHTML = `
@@ -944,7 +944,7 @@
                                     <td>${formatDate(game.date)}</td>
                                     <td>${game.moves}</td>
                                     <td>${formatTime(game.time)}</td>
-                                    <td>${game.win ? '✓ Win' : '✗ Loss'}</td>
+                                    <td>${game.win ? 'Win' : 'Loss'}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -964,14 +964,8 @@
         function addToScoreboard(win) {
             if (gameEnded) return;
             gameEnded = true;
-
             const timeElapsed = Math.floor((Date.now() - gameStartTime) / 1000);
-            scoreboard.push({
-                date: Date.now(),
-                moves: moveCount,
-                time: timeElapsed,
-                win: win
-            });
+            scoreboard.push({ date: Date.now(), moves: moveCount, time: timeElapsed, win: win });
             saveScoreboard();
         }
 
@@ -980,7 +974,8 @@
             for (let s = 0; s < 4; s++) {
                 for (let v = 0; v < 13; v++) {
                     deck.push({
-                        suit: suits[s],
+                        suit: suitChars[s],
+                        suitIndex: s,
                         value: values[v],
                         valueNum: v + 1,
                         color: (s === 1 || s === 2) ? 'red' : 'black'
@@ -994,9 +989,19 @@
             return deck;
         }
 
+        function getCardClasses(card, isFaceDown) {
+            const classes = ['card'];
+            if (isFaceDown) {
+                classes.push('face-down', 'back-' + currentTheme.cardBack);
+            } else {
+                classes.push('face-' + currentTheme.cardFace, card.color);
+            }
+            return classes.join(' ');
+        }
+
         function renderCardContent(card) {
             const isFaceCard = ['J', 'Q', 'K'].includes(card.value);
-            const faceSymbols = { 'J': '♞', 'Q': '♛', 'K': '♚' };
+            const faceSymbols = { 'J': '\u265E', 'Q': '\u265B', 'K': '\u265A' };
 
             return `
                 <div class="card-inner">
@@ -1016,13 +1021,11 @@
         }
 
         function saveMove(action) {
-            // Track if cards were face-down before the move
             if (action.type === 'tableau' && action.cards) {
                 action.wasFaceDown = action.cards.map(c => c.wasFaceDown);
             }
             moveHistory.push(action);
             moveCount++;
-            // Clear hint when user makes a move
             clearHint();
         }
 
@@ -1035,25 +1038,18 @@
 
         function undo() {
             if (moveHistory.length === 0) return;
-
             const action = moveHistory.pop();
 
             if (action.type === 'foundation') {
-                // Move card back from foundation to tableau
                 const card = foundations[action.fromFoundation].pop();
                 tableau[action.fromCol].push(card);
             } else if (action.type === 'tableau') {
-                // Move cards back from target column to source column
                 const cardsToMove = tableau[action.toCol].splice(-action.cardCount);
-                // Restore face-down state for cards that were flipped during the move
                 if (action.wasFaceDown && cardsToMove.length === action.wasFaceDown.length) {
-                    cardsToMove.forEach((card, i) => {
-                        card.faceDown = action.wasFaceDown[i];
-                    });
+                    cardsToMove.forEach((card, i) => { card.faceDown = action.wasFaceDown[i]; });
                 }
                 tableau[action.fromCol].push(...cardsToMove);
             } else if (action.type === 'flip') {
-                // Flip card back
                 tableau[action.col][action.index].faceDown = true;
             }
 
@@ -1064,23 +1060,17 @@
 
         function showHint() {
             const moves = findValidMoves();
-
             if (moves.length === 0) {
                 checkLoseCondition();
                 return;
             }
-
-            // Pick a random valid move
             const randomMove = moves[Math.floor(Math.random() * moves.length)];
-
-            // Highlight the card from the move - stays until user acts
             hintActive = true;
             if (randomMove.type === 'flip') {
                 selected = { col: randomMove.cardCol, index: tableau[randomMove.cardCol].length - 1 };
             } else {
                 selected = { col: randomMove.cardCol, index: randomMove.cardIndex };
             }
-
             render();
         }
 
@@ -1088,11 +1078,10 @@
             if (cards.length === 0) return [];
 
             const tableauEl = document.getElementById('tableau');
-            const columnWidth = 48; // max-width of column
-            const cardHeight = columnWidth * (7/5); // aspect-ratio 5/7
-            const availableHeight = tableauEl.clientHeight - cardHeight; // Reserve space for last card
+            const columnWidth = 52;
+            const cardHeight = columnWidth * (7/5);
+            const availableHeight = tableauEl.clientHeight - cardHeight;
 
-            // Count face-down and face-up cards
             let faceDownCount = 0;
             let faceUpCount = 0;
 
@@ -1105,31 +1094,23 @@
                 }
             }
 
-            // If all cards are face-down
-            if (faceUpCount === 0) {
-                faceDownCount = cards.length;
-            }
+            if (faceUpCount === 0) faceDownCount = cards.length;
 
-            // Calculate minimum needed space
             const minFaceDownTotal = faceDownCount * MIN_FACE_DOWN_SPACING;
             const minFaceUpTotal = Math.max(0, faceUpCount - 1) * MIN_FACE_UP_SPACING;
             const minNeeded = minFaceDownTotal + minFaceUpTotal;
 
-            // If even minimum doesn't fit, compress everything proportionally
             if (minNeeded > availableHeight) {
                 const scale = availableHeight / minNeeded;
                 return cards.map((card, i) => {
-                    if (i === cards.length - 1) return 0; // Last card doesn't need spacing
+                    if (i === cards.length - 1) return 0;
                     return card.faceDown ? MIN_FACE_DOWN_SPACING * scale : MIN_FACE_UP_SPACING * scale;
                 });
             }
 
-            // Calculate ideal space (show about 1/3 of face-up cards)
-            const idealFaceUpSpacing = Math.min(cardHeight * 0.35, 28);
-            const idealFaceUpTotal = Math.max(0, faceUpCount - 1) * idealFaceUpSpacing;
-            const idealNeeded = minFaceDownTotal + idealFaceUpTotal;
+            const idealFaceUpSpacing = Math.min(cardHeight * 0.4, 32);
+            const idealNeeded = minFaceDownTotal + Math.max(0, faceUpCount - 1) * idealFaceUpSpacing;
 
-            // If ideal fits, use it
             if (idealNeeded <= availableHeight) {
                 return cards.map((card, i) => {
                     if (i === cards.length - 1) return 0;
@@ -1137,7 +1118,6 @@
                 });
             }
 
-            // Otherwise, compress face-up cards to fit
             const spaceForFaceUp = availableHeight - minFaceDownTotal;
             const faceUpSpacing = faceUpCount > 1 ? spaceForFaceUp / (faceUpCount - 1) : 0;
 
@@ -1183,7 +1163,6 @@
             const moves = [];
 
             for (let col = 0; col < 7; col++) {
-                // Check if there's a face-down card that can be flipped
                 if (tableau[col].length > 0) {
                     const topCard = tableau[col][tableau[col].length - 1];
                     if (topCard.faceDown) {
@@ -1193,25 +1172,18 @@
 
                 if (tableau[col].length === 0) continue;
 
-                // Check ALL face-up cards (not just top) for valid moves
                 for (let i = 0; i < tableau[col].length; i++) {
                     const card = tableau[col][i];
                     if (card.faceDown) continue;
 
                     const isTopCard = (i === tableau[col].length - 1);
 
-                    // Check tableau moves (any face-up card can move to tableau with its stack)
-                    // BUT cannot move onto a face-down card
                     for (let targetCol = 0; targetCol < 7; targetCol++) {
                         if (targetCol === col) continue;
-
                         const targetTop = tableau[targetCol][tableau[targetCol].length - 1];
-
-                        // Cannot move onto a face-down card
                         if (targetTop && targetTop.faceDown) continue;
 
                         if (!targetTop && card.value === 'K') {
-                            // Skip if King is already at bottom of its column (pointless move)
                             if (i === 0) continue;
                             moves.push({ type: 'tableau', cardCol: col, cardIndex: i, targetCol });
                         }
@@ -1220,13 +1192,10 @@
                         }
                     }
 
-                    // Check foundation moves (ONLY top cards can go to foundation)
-                    // Priority: Aces to foundation take precedence over tableau moves
                     if (isTopCard) {
                         for (let f = 0; f < 4; f++) {
                             const top = foundations[f][foundations[f].length - 1];
-                            if (!top && card.value === 'A' && suits[f] === card.suit) {
-                                // Ace to empty foundation - highest priority, add at beginning
+                            if (!top && card.value === 'A' && card.suitIndex === f) {
                                 moves.unshift({ type: 'foundation', cardCol: col, cardIndex: i, foundation: f });
                             }
                             if (top && card.suit === top.suit && card.valueNum === top.valueNum + 1) {
@@ -1242,7 +1211,6 @@
 
         function checkGameState() {
             const total = foundations.reduce((sum, f) => sum + f.length, 0);
-
             if (total === 52) {
                 addToScoreboard(true);
                 showGameOver(true);
@@ -1256,41 +1224,26 @@
 
             for (let col = 0; col < 7; col++) {
                 if (tableau[col].length === 0) continue;
-
                 const topCard = tableau[col][tableau[col].length - 1];
                 if (topCard.faceDown) continue;
 
-                // Check if this card can go to foundation
                 for (let f = 0; f < 4; f++) {
                     const foundationTop = foundations[f][foundations[f].length - 1];
 
-                    // Ace to empty foundation
-                    if (!foundationTop && topCard.value === 'A' && suits[f] === topCard.suit) {
+                    if (!foundationTop && topCard.value === 'A' && topCard.suitIndex === f) {
                         if (autoMoveAces) {
                             foundations[f].push(topCard);
                             tableau[col].pop();
-                            moveHistory.push({
-                                type: 'foundation',
-                                fromCol: col,
-                                fromFoundation: f,
-                                card: topCard
-                            });
+                            moveHistory.push({ type: 'foundation', fromCol: col, fromFoundation: f, card: topCard });
                             moveCount++;
                             moved = true;
                             break;
                         }
-                    }
-                    // Next card to foundation
-                    else if (foundationTop && topCard.suit === foundationTop.suit && topCard.valueNum === foundationTop.valueNum + 1) {
+                    } else if (foundationTop && topCard.suit === foundationTop.suit && topCard.valueNum === foundationTop.valueNum + 1) {
                         if (autoMoveFoundation) {
                             foundations[f].push(topCard);
                             tableau[col].pop();
-                            moveHistory.push({
-                                type: 'foundation',
-                                fromCol: col,
-                                fromFoundation: f,
-                                card: topCard
-                            });
+                            moveHistory.push({ type: 'foundation', fromCol: col, fromFoundation: f, card: topCard });
                             moveCount++;
                             moved = true;
                             break;
@@ -1304,7 +1257,6 @@
             if (moved) {
                 checkGameState();
                 render();
-                // Try again recursively for chain moves
                 setTimeout(() => tryAutoMoveToFoundation(), 150);
             }
 
@@ -1324,13 +1276,11 @@
             const content = document.getElementById('gameOverContent');
             const title = document.getElementById('gameOverTitle');
             const movesText = document.getElementById('gameOverMoves');
-
             const timeElapsed = Math.floor((Date.now() - gameStartTime) / 1000);
 
             content.className = 'modal game-over-modal ' + (isWin ? 'win' : 'lose');
-            title.textContent = isWin ? '🎉 You Win!' : '😔 No more valid moves';
+            title.textContent = isWin ? 'You Win!' : 'No more moves';
             movesText.innerHTML = `Moves: ${moveCount}<br>Time: ${formatTime(timeElapsed)}`;
-
             modal.classList.add('show');
         }
 
@@ -1339,27 +1289,20 @@
         }
 
         function findValidMove(card, isTopCard) {
-            // Priority 1: Ace to empty foundation (highest priority)
             if (isTopCard && card.value === 'A') {
                 for (let f = 0; f < 4; f++) {
-                    if (foundations[f].length === 0 && suits[f] === card.suit) {
+                    if (foundations[f].length === 0 && card.suitIndex === f) {
                         return { type: 'foundation', index: f };
                     }
                 }
             }
 
-            // Priority 2: Tableau moves (cannot move onto face-down cards)
             for (let col = 0; col < 7; col++) {
-                const targetColCards = tableau[col];
-                const targetTop = targetColCards[targetColCards.length - 1];
-
-                // Cannot move onto a face-down card
+                const targetTop = tableau[col][tableau[col].length - 1];
                 if (targetTop && targetTop.faceDown) continue;
 
                 if (!targetTop) {
-                    if (card.value === 'K') {
-                        return { type: 'tableau', index: col };
-                    }
+                    if (card.value === 'K') return { type: 'tableau', index: col };
                 } else {
                     if (card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1) {
                         return { type: 'tableau', index: col };
@@ -1367,11 +1310,10 @@
                 }
             }
 
-            // Priority 3: Foundation moves (ONLY top cards)
             if (isTopCard) {
                 for (let f = 0; f < 4; f++) {
                     const top = foundations[f][foundations[f].length - 1];
-                    if (!top && card.value === 'A' && suits[f] === card.suit) {
+                    if (!top && card.value === 'A' && card.suitIndex === f) {
                         return { type: 'foundation', index: f };
                     }
                     if (top && card.suit === top.suit && card.valueNum === top.valueNum + 1) {
@@ -1385,37 +1327,23 @@
 
         function executeMove(cardCol, cardIndex, target) {
             const card = tableau[cardCol][cardIndex];
-
-            // Determine cards to move (just the card for foundation, stack for tableau)
             let cardsToMove;
+
             if (target.type === 'foundation') {
                 cardsToMove = [card];
             } else {
                 cardsToMove = tableau[cardCol].splice(cardIndex);
             }
 
-            // Track face-down state before move
             const wasFaceDown = cardsToMove.map(c => c.faceDown);
 
             if (target.type === 'foundation') {
-                saveMove({
-                    type: 'foundation',
-                    fromCol: cardCol,
-                    fromFoundation: target.index,
-                    card: card
-                });
+                saveMove({ type: 'foundation', fromCol: cardCol, fromFoundation: target.index, card: card });
                 foundations[target.index].push(card);
                 tableau[cardCol].splice(cardIndex, 1);
                 checkGameState();
             } else {
-                saveMove({
-                    type: 'tableau',
-                    fromCol: cardCol,
-                    toCol: target.index,
-                    cardCount: cardsToMove.length,
-                    cards: cardsToMove,
-                    wasFaceDown: wasFaceDown
-                });
+                saveMove({ type: 'tableau', fromCol: cardCol, toCol: target.index, cardCount: cardsToMove.length, cards: cardsToMove, wasFaceDown: wasFaceDown });
                 tableau[target.index].push(...cardsToMove);
                 checkGameState();
             }
@@ -1425,10 +1353,8 @@
             const card = tableau[col][index];
             const isTopCard = index === tableau[col].length - 1;
 
-            // Clear hint on any interaction
             clearHint();
 
-            // Flip face-down card
             if (card.faceDown) {
                 if (isTopCard) {
                     card.faceDown = false;
@@ -1439,7 +1365,6 @@
                 return;
             }
 
-            // One tap move - try to find and execute valid move
             if (oneTapMove) {
                 const validMove = findValidMove(card, isTopCard);
                 if (validMove) {
@@ -1450,20 +1375,11 @@
                 return;
             }
 
-            // Manual mode - select/deselect any face-up card
-            // If card is already selected by hint, try to move it
             if (selected && selected.col === col && selected.index === index) {
-                // Card is already selected - try to find a valid destination
-                // Try foundations first
                 for (let f = 0; f < 4; f++) {
-                    const foundation = foundations[f];
-                    const top = foundation[foundation.length - 1];
-                    const isEmptyFoundation = !top;
-                    const isValidFoundation = isEmptyFoundation
-                        ? (card.value === 'A' && suits[f] === card.suit)
-                        : (card.suit === top.suit && card.valueNum === top.valueNum + 1);
-
-                    if (isValidFoundation) {
+                    const top = foundations[f][foundations[f].length - 1];
+                    const isValid = !top ? (card.value === 'A' && card.suitIndex === f) : (card.suit === top.suit && card.valueNum === top.valueNum + 1);
+                    if (isValid && isTopCard) {
                         executeMove(col, index, { type: 'foundation', index: f });
                         render();
                         setTimeout(() => tryAutoMoveToFoundation(), 100);
@@ -1471,20 +1387,13 @@
                     }
                 }
 
-                // Try tableau
                 for (let targetCol = 0; targetCol < 7; targetCol++) {
                     if (targetCol === col) continue;
                     const targetTop = tableau[targetCol][tableau[targetCol].length - 1];
-
-                    // Cannot move onto a face-down card
                     if (targetTop && targetTop.faceDown) continue;
 
-                    const isEmptyTableau = !targetTop;
-                    const isValidTableau = isEmptyTableau
-                        ? (card.value === 'K')
-                        : (card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1);
-
-                    if (isValidTableau) {
+                    const isValid = !targetTop ? (card.value === 'K') : (card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1);
+                    if (isValid) {
                         executeMove(col, index, { type: 'tableau', index: targetCol });
                         render();
                         setTimeout(() => tryAutoMoveToFoundation(), 100);
@@ -1492,12 +1401,10 @@
                     }
                 }
 
-                // No valid move found, just deselect
                 selected = null;
                 render();
             } else {
-                // Select the card
-                selected = {col, index};
+                selected = { col, index };
                 render();
             }
         }
@@ -1507,50 +1414,24 @@
             if (!selected || oneTapMove) return;
 
             const card = tableau[selected.col][selected.index];
-
-            // Only top cards can be moved to foundation
             if (selected.index !== tableau[selected.col].length - 1) {
-                // Show hint that only top cards can go to foundation
                 selected = null;
                 render();
                 return;
             }
 
-            const foundation = foundations[fIndex];
-            const top = foundation[foundation.length - 1];
+            const top = foundations[fIndex][foundations[fIndex].length - 1];
+            const isValid = !top ? (card.value === 'A' && card.suitIndex === fIndex) : (card.suit === top.suit && card.valueNum === top.valueNum + 1);
 
-            if (!top) {
-                if (card.value === 'A' && suits[fIndex] === card.suit) {
-                    foundations[fIndex].push(card);
-                    tableau[selected.col].splice(selected.index, 1);
-                    saveMove({
-                        type: 'foundation',
-                        fromCol: selected.col,
-                        fromFoundation: fIndex,
-                        card: card
-                    });
-                    selected = null;
-                    checkGameState();
-                    render();
-                    setTimeout(() => tryAutoMoveToFoundation(), 100);
-                    return;
-                }
-            } else {
-                if (card.suit === top.suit && card.valueNum === top.valueNum + 1) {
-                    foundations[fIndex].push(card);
-                    tableau[selected.col].splice(selected.index, 1);
-                    saveMove({
-                        type: 'foundation',
-                        fromCol: selected.col,
-                        fromFoundation: fIndex,
-                        card: card
-                    });
-                    selected = null;
-                    checkGameState();
-                    render();
-                    setTimeout(() => tryAutoMoveToFoundation(), 100);
-                    return;
-                }
+            if (isValid) {
+                foundations[fIndex].push(card);
+                tableau[selected.col].splice(selected.index, 1);
+                saveMove({ type: 'foundation', fromCol: selected.col, fromFoundation: fIndex, card: card });
+                selected = null;
+                checkGameState();
+                render();
+                setTimeout(() => tryAutoMoveToFoundation(), 100);
+                return;
             }
 
             selected = null;
@@ -1568,10 +1449,8 @@
             }
 
             const card = tableau[selected.col][selected.index];
-            const targetColCards = tableau[targetCol];
-            const targetTop = targetColCards[targetColCards.length - 1];
+            const targetTop = tableau[targetCol][tableau[targetCol].length - 1];
 
-            // Cannot move onto a face-down card
             if (targetTop && targetTop.faceDown) {
                 selected = null;
                 render();
@@ -1579,43 +1458,19 @@
             }
 
             let didMove = false;
-            if (!targetTop) {
-                if (card.value === 'K') {
-                    const cards = tableau[selected.col].splice(selected.index);
-                    const wasFaceDown = cards.map(c => c.faceDown);
-                    saveMove({
-                        type: 'tableau',
-                        fromCol: selected.col,
-                        toCol: targetCol,
-                        cardCount: cards.length,
-                        cards: cards,
-                        wasFaceDown: wasFaceDown
-                    });
-                    tableau[targetCol].push(...cards);
-                    didMove = true;
-                }
-            } else {
-                if (card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1) {
-                    const cards = tableau[selected.col].splice(selected.index);
-                    const wasFaceDown = cards.map(c => c.faceDown);
-                    saveMove({
-                        type: 'tableau',
-                        fromCol: selected.col,
-                        toCol: targetCol,
-                        cardCount: cards.length,
-                        cards: cards,
-                        wasFaceDown: wasFaceDown
-                    });
-                    tableau[targetCol].push(...cards);
-                    didMove = true;
-                }
+            const isValid = !targetTop ? (card.value === 'K') : (card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1);
+
+            if (isValid) {
+                const cards = tableau[selected.col].splice(selected.index);
+                const wasFaceDown = cards.map(c => c.faceDown);
+                saveMove({ type: 'tableau', fromCol: selected.col, toCol: targetCol, cardCount: cards.length, cards: cards, wasFaceDown: wasFaceDown });
+                tableau[targetCol].push(...cards);
+                didMove = true;
             }
 
             selected = null;
             render();
-            if (didMove) {
-                setTimeout(() => tryAutoMoveToFoundation(), 100);
-            }
+            if (didMove) setTimeout(() => tryAutoMoveToFoundation(), 100);
         }
 
         function render() {
@@ -1628,12 +1483,10 @@
                 const div = document.createElement('div');
                 div.className = 'foundation' + (selected && !oneTapMove && !hintActive ? ' drop-target' : '');
                 if (top) div.classList.add('has-card');
-                div.dataset.type = 'foundation';
-                div.dataset.index = i;
                 div.onclick = () => handleFoundationClick(i);
 
                 if (top) {
-                    div.innerHTML = `<div class="foundation-card ${top.color}">
+                    div.innerHTML = `<div class="foundation-card face-${currentTheme.cardFace} ${top.color}">
                         <div class="card-corner top-left">
                             <span class="corner-value">${top.value}</span>
                             <span class="corner-suit">${top.suit}</span>
@@ -1645,7 +1498,7 @@
                         </div>
                     </div>`;
                 } else {
-                    div.innerHTML = 'A ' + suits[i];
+                    div.innerHTML = 'A ' + suitChars[i];
                 }
                 foundationsEl.appendChild(div);
             }
@@ -1656,8 +1509,6 @@
             for (let col = 0; col < 7; col++) {
                 const columnEl = document.createElement('div');
                 columnEl.className = 'column' + (selected && !oneTapMove && !hintActive ? ' drop-target' : '');
-                columnEl.dataset.type = 'tableau';
-                columnEl.dataset.index = col;
                 columnEl.onclick = () => handleTableauClick(col);
 
                 const spacing = calculateSpacing(tableau[col]);
@@ -1666,7 +1517,8 @@
                 tableau[col].forEach((card, i) => {
                     const cardEl = document.createElement('div');
                     const isTopCard = (i === tableau[col].length - 1);
-                    cardEl.className = 'card ' + (card.faceDown ? 'face-down' : card.color);
+
+                    cardEl.className = getCardClasses(card, card.faceDown);
                     if (card.faceDown && isTopCard) cardEl.classList.add('exposed');
                     cardEl.style.top = currentTop + 'px';
                     cardEl.style.zIndex = i;
@@ -1676,11 +1528,7 @@
                     }
 
                     if (selected && selected.col === col && selected.index === i) {
-                        if (hintActive) {
-                            cardEl.classList.add('hint-highlight');
-                        } else {
-                            cardEl.classList.add('selected');
-                        }
+                        cardEl.classList.add(hintActive ? 'hint-highlight' : 'selected');
                     }
 
                     cardEl.onclick = (e) => {
