@@ -3412,9 +3412,13 @@
                     // Click handler
                     cardEl.onclick = (e) => {
                         e.stopPropagation();
-                        if (!isDragging) {
-                            handleCardClick(col, i);
+                        // If we get a click while supposedly dragging, reset drag state
+                        // This handles edge cases where drag state gets stuck
+                        if (isDragging || dragData) {
+                            resetDragState();
+                            return;
                         }
+                        handleCardClick(col, i);
                     };
 
                     // Touch drag handlers
@@ -3464,6 +3468,27 @@
         document.addEventListener('mouseup', (e) => {
             if (dragData) {
                 endDrag(e.clientX, e.clientY);
+            }
+        });
+
+        // Reset drag state when mouse leaves window or window loses focus
+        function resetDragState() {
+            if (isDragging || dragData) {
+                removeDragGhost();
+                clearDropHighlights();
+                isDragging = false;
+                dragData = null;
+            }
+        }
+
+        document.addEventListener('mouseleave', resetDragState);
+        window.addEventListener('blur', resetDragState);
+        document.addEventListener('contextmenu', resetDragState);
+
+        // Also reset on visibility change (tab switch)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                resetDragState();
             }
         });
 
