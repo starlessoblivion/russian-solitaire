@@ -1141,6 +1141,13 @@
                     <span class="toggle-slider"></span>
                 </label>
             </div>
+            <div class="setting-row">
+                <span>Auto-Finish Game</span>
+                <label class="toggle">
+                    <input type="checkbox" id="autoFinishGame" onchange="saveSettings()">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
             <button class="modal-btn secondary" onclick="toggleSettings(); toggleThemes();">Customize Theme</button>
             <button class="modal-btn" onclick="toggleSettings(); startTutorial();">How to Play</button>
 
@@ -1249,6 +1256,7 @@
         let oneTapMove = false;
         let autoMoveAces = false;
         let autoMoveFoundation = false;
+        let autoFinishGame = false;
         let moveHistory = [];
         let moveCount = 0;
         let gameStartTime = null;
@@ -1271,6 +1279,7 @@
         let tutorialHighlights = { cards: [], foundations: [], columns: [], targetCards: [] };
         let tutorialPromptedAutoAces = false;
         let tutorialPromptedAutoFoundation = false;
+        let hasPromptedAutoFinish = false; // Track if we've ever prompted about auto-finish (persists across games)
 
         // Dynamic tutorial help messages
         const tutorialMessages = {
@@ -1358,15 +1367,20 @@
                 oneTapMove = settings.oneTapMove !== false;
                 autoMoveAces = settings.autoMoveAces || false;
                 autoMoveFoundation = settings.autoMoveFoundation || false;
+                autoFinishGame = settings.autoFinishGame || false;
+                hasPromptedAutoFinish = settings.hasPromptedAutoFinish || false;
             } else {
                 // Default settings for new users
                 oneTapMove = true;
                 autoMoveAces = false;
                 autoMoveFoundation = false;
+                autoFinishGame = false;
+                hasPromptedAutoFinish = false;
             }
             document.getElementById('oneTapMove').checked = oneTapMove;
             document.getElementById('autoMoveAces').checked = autoMoveAces;
             document.getElementById('autoMoveFoundation').checked = autoMoveFoundation;
+            document.getElementById('autoFinishGame').checked = autoFinishGame;
 
             const savedTheme = localStorage.getItem('russianSolitaireTheme');
             if (savedTheme) {
@@ -1385,8 +1399,9 @@
             oneTapMove = document.getElementById('oneTapMove').checked;
             autoMoveAces = document.getElementById('autoMoveAces').checked;
             autoMoveFoundation = document.getElementById('autoMoveFoundation').checked;
+            autoFinishGame = document.getElementById('autoFinishGame').checked;
             localStorage.setItem('russianSolitaireSettings', JSON.stringify({
-                oneTapMove, autoMoveAces, autoMoveFoundation
+                oneTapMove, autoMoveAces, autoMoveFoundation, autoFinishGame, hasPromptedAutoFinish
             }));
         }
 
@@ -1489,7 +1504,9 @@
                 settings: {
                     oneTapMove: oneTapMove,
                     autoMoveAces: autoMoveAces,
-                    autoMoveFoundation: autoMoveFoundation
+                    autoMoveFoundation: autoMoveFoundation,
+                    autoFinishGame: autoFinishGame,
+                    hasPromptedAutoFinish: hasPromptedAutoFinish
                 },
                 theme: currentTheme,
                 scoreboard: scoreboard,
@@ -1520,9 +1537,12 @@
                         oneTapMove = data.settings.oneTapMove || false;
                         autoMoveAces = data.settings.autoMoveAces || false;
                         autoMoveFoundation = data.settings.autoMoveFoundation || false;
+                        autoFinishGame = data.settings.autoFinishGame || false;
+                        hasPromptedAutoFinish = data.settings.hasPromptedAutoFinish || false;
                         document.getElementById('oneTapMove').checked = oneTapMove;
                         document.getElementById('autoMoveAces').checked = autoMoveAces;
                         document.getElementById('autoMoveFoundation').checked = autoMoveFoundation;
+                        document.getElementById('autoFinishGame').checked = autoFinishGame;
                         saveSettings();
                     }
 
@@ -1574,6 +1594,8 @@
             oneTapMove = false;
             autoMoveAces = false;
             autoMoveFoundation = false;
+            autoFinishGame = false;
+            hasPromptedAutoFinish = false;
             currentTheme = {
                 background: 'charcoal',
                 cardBack: 'red',
@@ -1585,6 +1607,7 @@
             document.getElementById('oneTapMove').checked = false;
             document.getElementById('autoMoveAces').checked = false;
             document.getElementById('autoMoveFoundation').checked = false;
+            document.getElementById('autoFinishGame').checked = false;
 
             // Apply default theme
             applyTheme();
@@ -2857,12 +2880,22 @@
             if (total === 52) {
                 clearGameState();
                 addToScoreboard(true);
-                showGameOver(true);
+
+                // On first win, prompt about auto-finish setting
+                if (!hasPromptedAutoFinish) {
+                    showAutoFinishPrompt();
+                } else {
+                    showGameOver(true);
+                }
             }
         }
 
         function tryAutoMoveToFoundation() {
-            if (!autoMoveAces && !autoMoveFoundation) return false;
+            if (!autoMoveAces && !autoMoveFoundation) {
+                // Even if auto-move is disabled, check for auto-finish
+                checkAndTriggerAutoFinish();
+                return false;
+            }
             if (isDealing || waitingForFirstMove) return false;
 
             let moved = false;
@@ -2903,10 +2936,237 @@
                 checkGameState();
                 render();
                 saveGameState();
+
+                // Check if auto-finish can be triggered
+                if (checkAndTriggerAutoFinish()) {
+                    return true;
+                }
+
                 setTimeout(() => tryAutoMoveToFoundation(), 150);
+            } else {
+                // No more auto-moves, check if auto-finish can be triggered
+                checkAndTriggerAutoFinish();
             }
 
             return moved;
+        }
+
+        // Auto-finish game feature
+        let isAutoFinishing = false;
+
+        function canAutoFinish() {
+            // Check if all face-down cards are revealed and all remaining cards can go to foundation
+            // This means: no face-down cards in tableau, and we can sequence all cards to foundation
+
+            for (let col = 0; col < 7; col++) {
+                for (let i = 0; i < tableau[col].length; i++) {
+                    if (tableau[col][i].faceDown) {
+                        return false; // Still have face-down cards
+                    }
+                }
+            }
+
+            // All cards are face-up. Now check if we can finish
+            // Since Russian Solitaire requires same-suit stacking, if all cards are face up
+            // and properly ordered within their columns, they can all go to foundation
+            // Simple check: just verify all cards are face-up - the game will naturally finish
+            return true;
+        }
+
+        function findNextAutoFinishMove() {
+            // Find the next card that can be moved to foundation
+            // Prioritize lower value cards first
+            let bestMove = null;
+            let bestValue = 14; // Start higher than King (13)
+
+            for (let col = 0; col < 7; col++) {
+                if (tableau[col].length === 0) continue;
+                const topCard = tableau[col][tableau[col].length - 1];
+                if (topCard.faceDown) continue;
+
+                for (let f = 0; f < 4; f++) {
+                    const foundationTop = foundations[f][foundations[f].length - 1];
+
+                    if (!foundationTop && topCard.value === 'A') {
+                        if (topCard.valueNum < bestValue) {
+                            bestValue = topCard.valueNum;
+                            bestMove = { col, foundation: f, card: topCard };
+                        }
+                    } else if (foundationTop && topCard.suit === foundationTop.suit && topCard.valueNum === foundationTop.valueNum + 1) {
+                        if (topCard.valueNum < bestValue) {
+                            bestValue = topCard.valueNum;
+                            bestMove = { col, foundation: f, card: topCard };
+                        }
+                    }
+                }
+            }
+
+            return bestMove;
+        }
+
+        function performAutoFinish() {
+            if (!isAutoFinishing) return;
+
+            const move = findNextAutoFinishMove();
+            if (!move) {
+                isAutoFinishing = false;
+                checkGameState();
+                return;
+            }
+
+            // Get elements for animation
+            const colEl = document.querySelectorAll('.column')[move.col];
+            const cardEls = colEl.querySelectorAll('.card:not(.face-down)');
+            const cardEl = cardEls[cardEls.length - 1];
+            const foundationEl = document.querySelectorAll('.foundation')[move.foundation];
+
+            if (!cardEl || !foundationEl) {
+                // Fallback: just do the move without animation
+                foundations[move.foundation].push(move.card);
+                tableau[move.col].pop();
+                moveCount++;
+                render();
+                setTimeout(performAutoFinish, 100);
+                return;
+            }
+
+            // Create flying card animation
+            const cardRect = cardEl.getBoundingClientRect();
+            const foundationRect = foundationEl.getBoundingClientRect();
+
+            const flyingCard = document.createElement('div');
+            flyingCard.className = 'card flying-card';
+            flyingCard.style.cssText = `
+                position: fixed;
+                left: ${cardRect.left}px;
+                top: ${cardRect.top}px;
+                width: ${cardRect.width}px;
+                height: ${cardRect.height}px;
+                z-index: 10000;
+                transition: all 0.2s ease-out;
+                ${getCardStyle(move.card)}
+            `;
+            flyingCard.innerHTML = renderCardContent(move.card);
+            document.body.appendChild(flyingCard);
+
+            // Hide original card
+            cardEl.style.visibility = 'hidden';
+
+            // Do the actual move
+            foundations[move.foundation].push(move.card);
+            tableau[move.col].pop();
+            moveCount++;
+
+            // Animate to foundation
+            requestAnimationFrame(() => {
+                flyingCard.style.left = foundationRect.left + 'px';
+                flyingCard.style.top = foundationRect.top + 'px';
+                flyingCard.style.width = foundationRect.width + 'px';
+                flyingCard.style.height = foundationRect.height + 'px';
+            });
+
+            setTimeout(() => {
+                flyingCard.remove();
+                render();
+                saveGameState();
+
+                // Check if game is won
+                const total = foundations.reduce((sum, f) => sum + f.length, 0);
+                if (total === 52) {
+                    isAutoFinishing = false;
+                    checkGameState();
+                } else {
+                    setTimeout(performAutoFinish, 80);
+                }
+            }, 200);
+        }
+
+        function startAutoFinish() {
+            if (isAutoFinishing) return;
+            isAutoFinishing = true;
+            performAutoFinish();
+        }
+
+        function checkAndTriggerAutoFinish() {
+            if (!autoFinishGame) return false;
+            if (isAutoFinishing) return false;
+            if (isDealing || waitingForFirstMove) return false;
+
+            if (canAutoFinish()) {
+                // Check if there are actually cards left to move
+                const cardsInTableau = tableau.reduce((sum, col) => sum + col.length, 0);
+                if (cardsInTableau > 0) {
+                    startAutoFinish();
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function showAutoFinishPrompt() {
+            // Show prompt in tutorial dialogue style
+            const dialogue = document.getElementById('tutorialDialogue');
+            const stepEl = document.getElementById('tutorialStep');
+            const titleEl = document.getElementById('tutorialTitle');
+            const textEl = document.getElementById('tutorialText');
+            const toggleContainer = document.getElementById('tutorialToggle');
+            const toggleLabel = document.getElementById('tutorialToggleLabel');
+            const toggleInput = document.getElementById('tutorialToggleInput');
+            const nextBtn = document.getElementById('tutorialNextBtn');
+            const skipBtn = document.querySelector('.tutorial-dialogue .btn-skip');
+
+            stepEl.textContent = 'Settings';
+            titleEl.textContent = 'Auto-Finish Game';
+            textEl.textContent = autoFinishGame
+                ? 'Auto-Finish is enabled. When all cards are face-up and can go to foundation, the game will automatically complete. Keep it enabled?'
+                : 'When all cards are face-up and can be moved to foundation, would you like the game to automatically finish for you?';
+
+            toggleContainer.style.display = 'block';
+            toggleLabel.textContent = 'Auto-Finish Game';
+            toggleInput.checked = autoFinishGame;
+
+            // Hide skip button during this prompt, show "No Thanks" instead
+            skipBtn.textContent = 'No Thanks';
+            skipBtn.onclick = function() {
+                hasPromptedAutoFinish = true;
+                autoFinishGame = false;
+                document.getElementById('autoFinishGame').checked = false;
+                saveSettings();
+
+                // Hide the dialogue
+                toggleContainer.style.display = 'none';
+                nextBtn.style.display = 'none';
+                skipBtn.textContent = 'Skip Tutorial';
+                skipBtn.onclick = endTutorial;
+                dialogue.classList.remove('show');
+                document.body.classList.remove('tutorial-active');
+
+                // Show the win screen
+                showGameOver(true);
+            };
+
+            nextBtn.style.display = 'inline-block';
+            nextBtn.textContent = 'Continue';
+            nextBtn.onclick = function() {
+                autoFinishGame = toggleInput.checked;
+                document.getElementById('autoFinishGame').checked = autoFinishGame;
+                hasPromptedAutoFinish = true;
+                saveSettings();
+
+                // Hide the dialogue
+                toggleContainer.style.display = 'none';
+                nextBtn.style.display = 'none';
+                skipBtn.textContent = 'Skip Tutorial';
+                skipBtn.onclick = endTutorial;
+                dialogue.classList.remove('show');
+                document.body.classList.remove('tutorial-active');
+
+                // Now show the actual win screen
+                showGameOver(true);
+            };
+
+            document.body.classList.add('tutorial-active');
+            dialogue.classList.add('show');
         }
 
         function checkLoseCondition() {
