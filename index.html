@@ -2614,7 +2614,6 @@
         function checkGameState() {
             const total = foundations.reduce((sum, f) => sum + f.length, 0);
             if (total === 52) {
-                gameEnded = true;
                 clearGameState();
                 addToScoreboard(true);
                 showGameOver(true);
@@ -2672,7 +2671,6 @@
         function checkLoseCondition() {
             const moves = findValidMoves();
             if (moves.length === 0) {
-                gameEnded = true;
                 clearGameState();
                 addToScoreboard(false);
                 showGameOver(false);
