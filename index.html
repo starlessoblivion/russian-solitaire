@@ -1868,8 +1868,20 @@
             }
         }
 
+        function closeAllModals() {
+            document.getElementById('settingsModal').classList.remove('show');
+            document.getElementById('themesModal').classList.remove('show');
+            document.getElementById('scoreboardModal').classList.remove('show');
+            document.getElementById('gameOverModal').classList.remove('show');
+            document.getElementById('clearCacheModal').classList.remove('show');
+            hideResumeBanner();
+        }
+
         function dealCardsAnimation() {
             isDealing = true;
+
+            // Close all menus before dealing
+            closeAllModals();
 
             // First render empty board
             const savedTableau = tableau.map(col => [...col]);
