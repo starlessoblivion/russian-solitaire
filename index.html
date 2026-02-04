@@ -1260,6 +1260,8 @@
         let tutorialMode = false;
         let tutorialStep = 0;
         let tutorialHighlights = { cards: [], foundations: [], columns: [], targetCards: [] };
+        let tutorialPromptedAutoAces = false;
+        let tutorialPromptedAutoFoundation = false;
 
         // Dynamic tutorial help messages
         const tutorialMessages = {
@@ -1343,13 +1345,19 @@
             const saved = localStorage.getItem('russianSolitaireSettings');
             if (saved) {
                 const settings = JSON.parse(saved);
-                oneTapMove = settings.oneTapMove || false;
+                // Default oneTapMove to true if not explicitly set to false
+                oneTapMove = settings.oneTapMove !== false;
                 autoMoveAces = settings.autoMoveAces || false;
                 autoMoveFoundation = settings.autoMoveFoundation || false;
-                document.getElementById('oneTapMove').checked = oneTapMove;
-                document.getElementById('autoMoveAces').checked = autoMoveAces;
-                document.getElementById('autoMoveFoundation').checked = autoMoveFoundation;
+            } else {
+                // Default settings for new users
+                oneTapMove = true;
+                autoMoveAces = false;
+                autoMoveFoundation = false;
             }
+            document.getElementById('oneTapMove').checked = oneTapMove;
+            document.getElementById('autoMoveAces').checked = autoMoveAces;
+            document.getElementById('autoMoveFoundation').checked = autoMoveFoundation;
 
             const savedTheme = localStorage.getItem('russianSolitaireTheme');
             if (savedTheme) {
@@ -2238,6 +2246,8 @@
             try {
                 tutorialMode = true;
                 tutorialStep = 0;
+                tutorialPromptedAutoAces = false;
+                tutorialPromptedAutoFoundation = false;
                 foundations = [[], [], [], []];
                 tableau = [[], [], [], [], [], [], []];
                 selected = null;
@@ -2650,6 +2660,35 @@
             }
         }
 
+        // Check if we should prompt user about auto-move settings during tutorial
+        function checkTutorialAutoMovePrompt(card) {
+            if (!tutorialMode) return;
+
+            // After first ace moved to foundation, ask about auto-move aces
+            if (card.value === 'A' && !tutorialPromptedAutoAces && !autoMoveAces) {
+                tutorialPromptedAutoAces = true;
+                setTimeout(() => {
+                    if (confirm('Would you like to enable "Auto-Move Aces"?\n\nThis will automatically move Aces to the foundation when they become available.')) {
+                        autoMoveAces = true;
+                        document.getElementById('autoMoveAces').checked = true;
+                        saveSettings();
+                    }
+                }, 300);
+            }
+
+            // After first 2 moved to foundation, ask about auto-move to foundation
+            if (card.value === '2' && !tutorialPromptedAutoFoundation && !autoMoveFoundation) {
+                tutorialPromptedAutoFoundation = true;
+                setTimeout(() => {
+                    if (confirm('Would you like to enable "Auto-Move to Foundation"?\n\nThis will automatically move cards to the foundation when they can be placed there.')) {
+                        autoMoveFoundation = true;
+                        document.getElementById('autoMoveFoundation').checked = true;
+                        saveSettings();
+                    }
+                }, 300);
+            }
+        }
+
         function endTutorial() {
             // Only start a new game if tutorial was actually active
             const wasTutorialActive = tutorialMode;
@@ -2878,6 +2917,7 @@
                 foundations[target.index].push(card);
                 tableau[cardCol].splice(cardIndex, 1);
                 checkGameState();
+                checkTutorialAutoMovePrompt(card);
             } else {
                 saveMove({ type: 'tableau', fromCol: cardCol, toCol: target.index, cardCount: cardsToMove.length, cards: cardsToMove, wasFaceDown: wasFaceDown });
                 tableau[target.index].push(...cardsToMove);
@@ -2969,6 +3009,7 @@
                 saveMove({ type: 'foundation', fromCol: selected.col, fromFoundation: fIndex, card: card });
                 selected = null;
                 checkGameState();
+                checkTutorialAutoMovePrompt(card);
                 render();
                 updateTutorialAfterMove();
                 setTimeout(() => tryAutoMoveToFoundation(), 100);
