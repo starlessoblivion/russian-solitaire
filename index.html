@@ -536,18 +536,13 @@
             // Pick a random valid move
             const randomMove = moves[Math.floor(Math.random() * moves.length)];
             
-            // Highlight the card
-            let targetCol, targetIndex;
-            
+            // Highlight the card from the move
             if (randomMove.type === 'flip') {
-                targetCol = randomMove.cardCol;
-                targetIndex = tableau[randomMove.cardCol].length - 1;
+                selected = { col: randomMove.cardCol, index: tableau[randomMove.cardCol].length - 1 };
             } else {
-                targetCol = randomMove.cardCol;
-                targetIndex = tableau[randomMove.cardCol].length - 1;
+                selected = { col: randomMove.cardCol, index: randomMove.cardIndex };
             }
             
-            selected = { col: targetCol, index: targetIndex };
             render();
             
             // Clear highlight after 2 seconds
@@ -636,37 +631,42 @@
                 if (tableau[col].length > 0) {
                     const topCard = tableau[col][tableau[col].length - 1];
                     if (topCard.faceDown) {
-                        // Flipping a card is a valid move
                         moves.push({ type: 'flip', cardCol: col });
                     }
                 }
                 
                 if (tableau[col].length === 0) continue;
                 
-                const card = tableau[col][tableau[col].length - 1];
-                if (card.faceDown) continue;
-                
-                // Check foundations
-                for (let f = 0; f < 4; f++) {
-                    const top = foundations[f][foundations[f].length - 1];
-                    if (!top && card.value === 'A' && suits[f] === card.suit) {
-                        moves.push({ type: 'foundation', cardCol: col, cardIndex: tableau[col].length - 1, foundation: f });
-                    }
-                    if (top && card.suit === top.suit && card.valueNum === top.valueNum + 1) {
-                        moves.push({ type: 'foundation', cardCol: col, cardIndex: tableau[col].length - 1, foundation: f });
-                    }
-                }
-                
-                // Check tableau
-                for (let targetCol = 0; targetCol < 7; targetCol++) {
-                    if (targetCol === col) continue;
+                // Check ALL face-up cards (not just top) for valid moves
+                for (let i = 0; i < tableau[col].length; i++) {
+                    const card = tableau[col][i];
+                    if (card.faceDown) continue;
                     
-                    const targetTop = tableau[targetCol][tableau[targetCol].length - 1];
-                    if (!targetTop && card.value === 'K') {
-                        moves.push({ type: 'tableau', cardCol: col, cardIndex: tableau[col].length - 1, targetCol });
+                    // Can only move card if all cards above it are face-up
+                    // (this is always true by definition of face-down)
+                    
+                    // Check foundations (only single cards to foundation)
+                    for (let f = 0; f < 4; f++) {
+                        const top = foundations[f][foundations[f].length - 1];
+                        if (!top && card.value === 'A' && suits[f] === card.suit) {
+                            moves.push({ type: 'foundation', cardCol: col, cardIndex: i, foundation: f });
+                        }
+                        if (top && card.suit === top.suit && card.valueNum === top.valueNum + 1) {
+                            moves.push({ type: 'foundation', cardCol: col, cardIndex: i, foundation: f });
+                        }
                     }
-                    if (targetTop && card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1) {
-                        moves.push({ type: 'tableau', cardCol: col, cardIndex: tableau[col].length - 1, targetCol });
+                    
+                    // Check tableau (card and all cards above it can move)
+                    for (let targetCol = 0; targetCol < 7; targetCol++) {
+                        if (targetCol === col) continue;
+                        
+                        const targetTop = tableau[targetCol][tableau[targetCol].length - 1];
+                        if (!targetTop && card.value === 'K') {
+                            moves.push({ type: 'tableau', cardCol: col, cardIndex: i, targetCol });
+                        }
+                        if (targetTop && card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1) {
+                            moves.push({ type: 'tableau', cardCol: col, cardIndex: i, targetCol });
+                        }
                     }
                 }
             }
@@ -781,13 +781,9 @@
                 return;
             }
             
-            // Only top cards can be selected or moved
-            if (!isTopCard) {
-                return; // Can't select cards with cards on top
-            }
-            
-            // One tap move
+            // One tap move - only works for top cards
             if (oneTapMove) {
+                if (!isTopCard) return;
                 const validMove = findValidMove(card);
                 if (validMove) {
                     executeMove(col, index, validMove);
@@ -796,7 +792,7 @@
                 return;
             }
             
-            // Manual mode - select/deselect
+            // Manual mode - select/deselect any face-up card
             if (selected && selected.col === col && selected.index === index) {
                 selected = null;
             } else {
@@ -810,8 +806,9 @@
             
             const card = tableau[selected.col][selected.index];
             
-            // Only top cards can be moved
+            // Only top cards can be moved to foundation
             if (selected.index !== tableau[selected.col].length - 1) {
+                // Show hint that only top cards can go to foundation
                 selected = null;
                 render();
                 return;
@@ -859,13 +856,6 @@
         function handleTableauClick(targetCol) {
             if (!selected || oneTapMove) return;
             
-            // Only top cards can be moved
-            if (selected.index !== tableau[selected.col].length - 1) {
-                selected = null;
-                render();
-                return;
-            }
-            
             if (selected.col === targetCol) {
                 selected = null;
                 render();
@@ -879,22 +869,28 @@
             if (!targetTop) {
                 if (card.value === 'K') {
                     const cards = tableau[selected.col].splice(selected.index);
+                    const wasFaceDown = cards.map(c => c.faceDown);
                     saveMove({
                         type: 'tableau',
                         fromCol: selected.col,
                         toCol: targetCol,
-                        cardCount: cards.length
+                        cardCount: cards.length,
+                        cards: cards,
+                        wasFaceDown: wasFaceDown
                     });
                     tableau[targetCol].push(...cards);
                 }
             } else {
                 if (card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1) {
                     const cards = tableau[selected.col].splice(selected.index);
+                    const wasFaceDown = cards.map(c => c.faceDown);
                     saveMove({
                         type: 'tableau',
                         fromCol: selected.col,
                         toCol: targetCol,
-                        cardCount: cards.length
+                        cardCount: cards.length,
+                        cards: cards,
+                        wasFaceDown: wasFaceDown
                     });
                     tableau[targetCol].push(...cards);
                 }
