@@ -642,21 +642,9 @@
                     const card = tableau[col][i];
                     if (card.faceDown) continue;
                     
-                    // Can only move card if all cards above it are face-up
-                    // (this is always true by definition of face-down)
+                    const isTopCard = (i === tableau[col].length - 1);
                     
-                    // Check foundations (only single cards to foundation)
-                    for (let f = 0; f < 4; f++) {
-                        const top = foundations[f][foundations[f].length - 1];
-                        if (!top && card.value === 'A' && suits[f] === card.suit) {
-                            moves.push({ type: 'foundation', cardCol: col, cardIndex: i, foundation: f });
-                        }
-                        if (top && card.suit === top.suit && card.valueNum === top.valueNum + 1) {
-                            moves.push({ type: 'foundation', cardCol: col, cardIndex: i, foundation: f });
-                        }
-                    }
-                    
-                    // Check tableau (card and all cards above it can move)
+                    // Check tableau moves (any face-up card can move to tableau with its stack)
                     for (let targetCol = 0; targetCol < 7; targetCol++) {
                         if (targetCol === col) continue;
                         
@@ -666,6 +654,19 @@
                         }
                         if (targetTop && card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1) {
                             moves.push({ type: 'tableau', cardCol: col, cardIndex: i, targetCol });
+                        }
+                    }
+                    
+                    // Check foundation moves (ONLY top cards can go to foundation)
+                    if (isTopCard) {
+                        for (let f = 0; f < 4; f++) {
+                            const top = foundations[f][foundations[f].length - 1];
+                            if (!top && card.value === 'A' && suits[f] === card.suit) {
+                                moves.push({ type: 'foundation', cardCol: col, cardIndex: i, foundation: f });
+                            }
+                            if (top && card.suit === top.suit && card.valueNum === top.valueNum + 1) {
+                                moves.push({ type: 'foundation', cardCol: col, cardIndex: i, foundation: f });
+                            }
                         }
                     }
                 }
@@ -706,19 +707,8 @@
             document.getElementById('gameOverModal').classList.remove('show');
         }
         
-        function findValidMove(card) {
-            // Check foundations first
-            for (let f = 0; f < 4; f++) {
-                const top = foundations[f][foundations[f].length - 1];
-                if (!top && card.value === 'A' && suits[f] === card.suit) {
-                    return { type: 'foundation', index: f };
-                }
-                if (top && card.suit === top.suit && card.valueNum === top.valueNum + 1) {
-                    return { type: 'foundation', index: f };
-                }
-            }
-            
-            // Check tableau
+        function findValidMove(card, isTopCard) {
+            // Check tableau moves first (any face-up card can move to tableau)
             for (let col = 0; col < 7; col++) {
                 const targetColCards = tableau[col];
                 const targetTop = targetColCards[targetColCards.length - 1];
@@ -730,6 +720,19 @@
                 } else {
                     if (card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1) {
                         return { type: 'tableau', index: col };
+                    }
+                }
+            }
+            
+            // Check foundations (ONLY top cards can go to foundation)
+            if (isTopCard) {
+                for (let f = 0; f < 4; f++) {
+                    const top = foundations[f][foundations[f].length - 1];
+                    if (!top && card.value === 'A' && suits[f] === card.suit) {
+                        return { type: 'foundation', index: f };
+                    }
+                    if (top && card.suit === top.suit && card.valueNum === top.valueNum + 1) {
+                        return { type: 'foundation', index: f };
                     }
                 }
             }
@@ -791,7 +794,7 @@
             
             // One tap move - try to find and execute valid move
             if (oneTapMove) {
-                const validMove = findValidMove(card);
+                const validMove = findValidMove(card, isTopCard);
                 if (validMove) {
                     executeMove(col, index, validMove);
                     render();
