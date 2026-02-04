@@ -25,7 +25,7 @@
         }
         
         .game-container {
-            height: calc(100vh - 40px);
+            height: calc(100vh - 55px);
             display: flex;
             flex-direction: column;
         }
@@ -47,17 +47,6 @@
             flex: 1;
             text-align: center;
         }
-        
-        .settings-btn {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 5px 10px;
-            opacity: 0.8;
-        }
-        
-        .settings-btn:active { opacity: 1; }
         
         .foundations {
             display: flex;
@@ -167,13 +156,51 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 0.6rem;
+            font-size: 0.55rem;
             font-weight: bold;
             border: 1px solid #ddd;
         }
         
         .foundation-card.red { color: #d40000; }
         .foundation-card.black { color: #000; }
+        
+        /* Bottom Bar */
+        .bottom-bar {
+            height: 50px;
+            background: rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            border-radius: 8px;
+            margin-top: 5px;
+        }
+        
+        .bottom-bar button {
+            background: #ffd700;
+            border: none;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        
+        .bottom-bar button:active {
+            transform: scale(0.95);
+        }
+        
+        .bottom-bar .settings-btn {
+            background: none;
+            font-size: 1.5rem;
+            padding: 5px 10px;
+            opacity: 0.9;
+        }
+        
+        .bottom-bar .undo-btn {
+            background: #4a9eff;
+            color: #fff;
+        }
         
         /* Settings Modal */
         .modal-overlay {
@@ -302,6 +329,30 @@
             font-size: 0.6rem;
             margin-top: 2px;
         }
+        
+        /* Win/Lose Modal */
+        .game-over-modal {
+            text-align: center;
+        }
+        
+        .game-over-modal h2 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .game-over-modal .moves-count {
+            font-size: 1rem;
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+        
+        .game-over-modal.win h2 {
+            color: #ffd700;
+        }
+        
+        .game-over-modal.lose h2 {
+            color: #ff6b6b;
+        }
     </style>
 </head>
 <body>
@@ -309,12 +360,18 @@
         <div class="top-section">
             <div class="header">
                 <h1>♠️ Russian Solitaire ♥️</h1>
-                <button class="settings-btn" onclick="toggleSettings()">⚙️</button>
             </div>
             <div class="foundations" id="foundations"></div>
             <p class="hint">Tap card to select/move • Tap exposed face-down to flip</p>
         </div>
         <div class="tableau" id="tableau"></div>
+    </div>
+    
+    <!-- Bottom Bar -->
+    <div class="bottom-bar">
+        <button class="settings-btn" onclick="toggleSettings()">⚙️</button>
+        <button onclick="newGame()">New Game</button>
+        <button class="undo-btn" onclick="undo()">↩ Undo</button>
     </div>
     
     <!-- Settings Modal -->
@@ -329,7 +386,15 @@
                     <span class="toggle-slider"></span>
                 </label>
             </div>
-            <button class="modal-btn" onclick="newGame(); toggleSettings();">New Game</button>
+        </div>
+    </div>
+    
+    <!-- Game Over Modal -->
+    <div class="modal-overlay" id="gameOverModal">
+        <div class="modal game-over-modal" id="gameOverContent">
+            <h2 id="gameOverTitle"></h2>
+            <p class="moves-count" id="gameOverMoves"></p>
+            <button class="modal-btn" onclick="newGame(); hideGameOver();">New Game</button>
         </div>
     </div>
     
@@ -343,6 +408,8 @@
         let tableau = [[], [], [], [], [], [], [], []];
         let selected = null;
         let oneTapMove = false;
+        let moveHistory = [];
+        let moveCount = 0;
         
         function loadSettings() {
             const saved = localStorage.getItem('russianSolitaireSettings');
@@ -381,11 +448,38 @@
             return deck;
         }
         
+        function saveMove(action) {
+            moveHistory.push(action);
+            moveCount++;
+        }
+        
+        function undo() {
+            if (moveHistory.length === 0) return;
+            
+            const action = moveHistory.pop();
+            
+            if (action.type === 'foundation') {
+                // Move card back from foundation to tableau
+                const card = foundations[action.fromFoundation].pop();
+                tableau[action.fromCol].push(card);
+            } else if (action.type === 'tableau') {
+                // Move cards back from target column to source column
+                const cardsToMove = tableau[action.toCol].splice(action.cardCount);
+                tableau[action.fromCol].push(...cardsToMove.reverse());
+            } else if (action.type === 'flip') {
+                // Flip card back
+                tableau[action.col][action.index].faceDown = true;
+            }
+            
+            moveCount--;
+            selected = null;
+            render();
+        }
+        
         function calculateSpacing(cards) {
             const tableauEl = document.getElementById('tableau');
             const availableHeight = tableauEl.clientHeight - 10;
             
-            // Count face-down and face-up cards
             let faceDownCount = 0;
             let faceUpCount = 0;
             
@@ -398,34 +492,28 @@
                 }
             }
             
-            // If all cards are face-down, use minimum spacing
             if (faceUpCount === 0) {
                 return cards.map(() => MIN_FACE_DOWN_SPACING);
             }
             
-            // Calculate ideal space needed
-            const idealSpacing = cards.map(card => card.faceDown ? Math.max(MIN_FACE_DOWN_SPACING, CARD_HEIGHT * 0.5) : CARD_HEIGHT);
+            const idealSpacing = cards.map(card => 
+                card.faceDown ? Math.max(MIN_FACE_DOWN_SPACING, CARD_HEIGHT * 0.5) : CARD_HEIGHT
+            );
             const idealTotal = idealSpacing.reduce((a, b) => a + b, 0);
             
-            // If fits with ideal spacing, use it
             if (idealTotal <= availableHeight) {
                 return idealSpacing;
             }
             
-            // Need to compress - distribute available space
             const totalSpacing = availableHeight;
-            
-            // First, give face-up cards minimum height (85% to show value)
             const faceUpSpace = faceUpCount * (CARD_HEIGHT * 0.85);
             const remainingSpace = totalSpacing - faceUpSpace;
             
             if (remainingSpace <= 0) {
-                // Even compressed face-up doesn't fit - scale everything
                 const scale = availableHeight / idealTotal;
                 return idealSpacing.map(s => Math.max(MIN_FACE_DOWN_SPACING, s * scale));
             }
             
-            // Distribute remaining space among face-down cards
             const faceDownSpacing = Math.max(MIN_FACE_DOWN_SPACING, remainingSpace / faceDownCount);
             
             return cards.map(card => card.faceDown ? faceDownSpacing : CARD_HEIGHT * 0.85);
@@ -436,6 +524,8 @@
             foundations = [[], [], [], []];
             tableau = [[], [], [], [], [], [], [], []];
             selected = null;
+            moveHistory = [];
+            moveCount = 0;
             
             const totals = [1, 6, 7, 8, 9, 10, 11];
             const faceUps = [1, 5, 5, 5, 5, 5, 5];
@@ -453,7 +543,76 @@
                 }
             }
             
+            hideGameOver();
             render();
+        }
+        
+        function findValidMoves() {
+            const moves = [];
+            
+            for (let col = 0; col < 7; col++) {
+                if (tableau[col].length === 0) continue;
+                
+                const card = tableau[col][tableau[col].length - 1];
+                if (card.faceDown) continue;
+                
+                // Check foundations
+                for (let f = 0; f < 4; f++) {
+                    const top = foundations[f][foundations[f].length - 1];
+                    if (!top && card.value === 'A' && suits[f] === card.suit) {
+                        moves.push({ type: 'foundation', cardCol: col, cardIndex: tableau[col].length - 1, foundation: f });
+                    }
+                    if (top && card.suit === top.suit && card.valueNum === top.valueNum + 1) {
+                        moves.push({ type: 'foundation', cardCol: col, cardIndex: tableau[col].length - 1, foundation: f });
+                    }
+                }
+                
+                // Check tableau
+                for (let targetCol = 0; targetCol < 7; targetCol++) {
+                    if (targetCol === col) continue;
+                    
+                    const targetTop = tableau[targetCol][tableau[targetCol].length - 1];
+                    if (!targetTop && card.value === 'K') {
+                        moves.push({ type: 'tableau', cardCol: col, cardIndex: tableau[col].length - 1, targetCol });
+                    }
+                    if (targetTop && card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1) {
+                        moves.push({ type: 'tableau', cardCol: col, cardIndex: tableau[col].length - 1, targetCol });
+                    }
+                }
+            }
+            
+            return moves;
+        }
+        
+        function checkGameState() {
+            const total = foundations.reduce((sum, f) => sum + f.length, 0);
+            
+            if (total === 52) {
+                showGameOver(true);
+                return;
+            }
+            
+            const moves = findValidMoves();
+            if (moves.length === 0) {
+                showGameOver(false);
+            }
+        }
+        
+        function showGameOver(isWin) {
+            const modal = document.getElementById('gameOverModal');
+            const content = document.getElementById('gameOverContent');
+            const title = document.getElementById('gameOverTitle');
+            const movesText = document.getElementById('gameOverMoves');
+            
+            content.className = 'modal game-over-modal ' + (isWin ? 'win' : 'lose');
+            title.textContent = isWin ? '🎉 You Win!' : '💀 You Lose';
+            movesText.textContent = `Total moves: ${moveCount}`;
+            
+            modal.classList.add('show');
+        }
+        
+        function hideGameOver() {
+            document.getElementById('gameOverModal').classList.remove('show');
         }
         
         function findValidMove(card) {
@@ -491,12 +650,25 @@
             const card = tableau[cardCol][cardIndex];
             
             if (target.type === 'foundation') {
+                saveMove({
+                    type: 'foundation',
+                    fromCol: cardCol,
+                    fromFoundation: target.index,
+                    card: card
+                });
                 foundations[target.index].push(card);
                 tableau[cardCol].splice(cardIndex, 1);
-                checkWin();
+                checkGameState();
             } else {
                 const cards = tableau[cardCol].splice(cardIndex);
+                saveMove({
+                    type: 'tableau',
+                    fromCol: cardCol,
+                    toCol: target.index,
+                    cardCount: cards.length
+                });
                 tableau[target.index].push(...cards);
+                checkGameState();
             }
         }
         
@@ -507,6 +679,7 @@
             if (card.faceDown) {
                 if (index === tableau[col].length - 1) {
                     card.faceDown = false;
+                    saveMove({ type: 'flip', col, index });
                     render();
                 }
                 return;
@@ -518,7 +691,6 @@
                 if (validMove) {
                     executeMove(col, index, validMove);
                     render();
-                    return;
                 }
                 return;
             }
@@ -543,8 +715,14 @@
                 if (card.value === 'A' && suits[fIndex] === card.suit) {
                     foundations[fIndex].push(card);
                     tableau[selected.col].splice(selected.index, 1);
+                    saveMove({
+                        type: 'foundation',
+                        fromCol: selected.col,
+                        fromFoundation: fIndex,
+                        card: card
+                    });
                     selected = null;
-                    checkWin();
+                    checkGameState();
                     render();
                     return;
                 }
@@ -552,8 +730,14 @@
                 if (card.suit === top.suit && card.valueNum === top.valueNum + 1) {
                     foundations[fIndex].push(card);
                     tableau[selected.col].splice(selected.index, 1);
+                    saveMove({
+                        type: 'foundation',
+                        fromCol: selected.col,
+                        fromFoundation: fIndex,
+                        card: card
+                    });
                     selected = null;
-                    checkWin();
+                    checkGameState();
                     render();
                     return;
                 }
@@ -578,24 +762,29 @@
             if (!targetTop) {
                 if (card.value === 'K') {
                     const cards = tableau[selected.col].splice(selected.index);
+                    saveMove({
+                        type: 'tableau',
+                        fromCol: selected.col,
+                        toCol: targetCol,
+                        cardCount: cards.length
+                    });
                     tableau[targetCol].push(...cards);
                 }
             } else {
                 if (card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1) {
                     const cards = tableau[selected.col].splice(selected.index);
+                    saveMove({
+                        type: 'tableau',
+                        fromCol: selected.col,
+                        toCol: targetCol,
+                        cardCount: cards.length
+                    });
                     tableau[targetCol].push(...cards);
                 }
             }
             
             selected = null;
             render();
-        }
-        
-        function checkWin() {
-            const total = foundations.reduce((sum, f) => sum + f.length, 0);
-            if (total === 52) {
-                alert('🎉 You Win! 🎉');
-            }
         }
         
         function render() {
