@@ -47,6 +47,12 @@
             display: flex;
             flex-direction: column;
             touch-action: none;
+            transition: height 0.3s ease;
+        }
+
+        /* Reduce height when tutorial dialogue is visible */
+        body.tutorial-active .game-container {
+            height: calc(100% - 75px - 140px - env(safe-area-inset-bottom));
         }
 
         .top-section {
@@ -1598,7 +1604,10 @@
         }
 
         function showTutorialStep() {
-            if (!tutorialMode) return;
+            if (!tutorialMode) {
+                document.body.classList.remove('tutorial-active');
+                return;
+            }
 
             const dialogue = document.getElementById('tutorialDialogue');
             const stepEl = document.getElementById('tutorialStep');
@@ -1606,23 +1615,31 @@
             const textEl = document.getElementById('tutorialText');
             const nextBtn = document.getElementById('tutorialNextBtn');
 
+            // Add class to body for layout adjustment
+            document.body.classList.add('tutorial-active');
+
             // Reset highlights
             tutorialHighlights = { cards: [], foundations: [], columns: [], targetCards: [] };
 
             // Check if game is won
             const totalInFoundations = foundations.reduce((sum, f) => sum + f.length, 0);
             if (totalInFoundations === 52) {
-                stepEl.textContent = "Tutorial Complete!";
-                titleEl.textContent = tutorialMessages.won.title;
-                textEl.textContent = tutorialMessages.won.text;
-                nextBtn.style.display = 'none';
-                dialogue.classList.add('show');
-                render();
+                showTutorialEndGame(true);
                 return;
             }
 
             // Analyze board for available moves (prioritized order)
             const analysis = analyzeBoardForTutorial();
+
+            // Check if no moves available (game lost)
+            const hasAnyMoves = analysis.aces.length > 0 || analysis.foundations.length > 0 ||
+                               analysis.flips.length > 0 || analysis.kings.length > 0 ||
+                               analysis.tableauStacks.length > 0 || analysis.tableau.length > 0;
+
+            if (!hasAnyMoves && tutorialStep > 0) {
+                showTutorialEndGame(false);
+                return;
+            }
 
             if (tutorialStep === 0) {
                 // First step: show welcome
@@ -1685,13 +1702,45 @@
                 tutorialHighlights.cards.push({ col: move.col, index: move.index });
                 tutorialHighlights.targetCards.push({ col: move.targetCol, index: move.targetIndex });
                 nextBtn.style.display = 'none';
-            } else {
-                // No moves available
-                stepEl.textContent = "Game Over";
-                titleEl.textContent = tutorialMessages.noMoves.title;
-                textEl.textContent = tutorialMessages.noMoves.text;
-                nextBtn.style.display = 'none';
             }
+
+            dialogue.classList.add('show');
+            render();
+        }
+
+        function showTutorialEndGame(isWin) {
+            const dialogue = document.getElementById('tutorialDialogue');
+            const stepEl = document.getElementById('tutorialStep');
+            const titleEl = document.getElementById('tutorialTitle');
+            const textEl = document.getElementById('tutorialText');
+            const nextBtn = document.getElementById('tutorialNextBtn');
+
+            // Russian Solitaire has approximately 5-10% win rate
+            const estimatedWinRate = "5-10%";
+            const cardsInFoundation = foundations.reduce((sum, f) => sum + f.length, 0);
+            const timeElapsed = Math.floor((Date.now() - gameStartTime) / 1000);
+
+            tutorialHighlights = { cards: [], foundations: [], columns: [], targetCards: [] };
+
+            if (isWin) {
+                stepEl.textContent = "You Won!";
+                titleEl.textContent = "Congratulations!";
+                textEl.innerHTML = `You completed the tutorial in <strong>${moveCount} moves</strong> and <strong>${formatTime(timeElapsed)}</strong>!<br><br>` +
+                    `<small>Russian Solitaire is one of the hardest solitaire variants with only ~${estimatedWinRate} of random games being winnable. ` +
+                    `Don't be discouraged by losses - they're expected!</small>`;
+            } else {
+                stepEl.textContent = "No Moves Left";
+                titleEl.textContent = "Game Over";
+                textEl.innerHTML = `You reached <strong>${cardsInFoundation}/52</strong> cards in foundations.<br><br>` +
+                    `<small>Russian Solitaire has only ~${estimatedWinRate} win rate. Most games are unwinnable even with perfect play. ` +
+                    `This is normal - the challenge is finding the rare winnable games!</small>`;
+            }
+
+            nextBtn.textContent = "New Game";
+            nextBtn.style.display = 'block';
+            nextBtn.onclick = () => {
+                endTutorial();
+            };
 
             dialogue.classList.add('show');
             render();
@@ -1790,6 +1839,9 @@
             tutorialStep = 0;
             tutorialHighlights = { cards: [], foundations: [], columns: [], targetCards: [] };
             document.getElementById('tutorialDialogue').classList.remove('show');
+            document.body.classList.remove('tutorial-active');
+            // Reset the next button onclick
+            document.getElementById('tutorialNextBtn').onclick = nextTutorialStep;
             // Deal a new regular hand
             newGameWithoutEndingTutorial();
         }
@@ -1827,10 +1879,7 @@
         }
 
         function checkTutorialProgress(action, col, index, targetCol, targetFoundation) {
-            // Update tutorial dialogue after each move
-            if (tutorialMode) {
-                updateTutorialAfterMove();
-            }
+            // No-op - tutorial updates are triggered after moves complete via updateTutorialAfterMove()
             return false;
         }
 
@@ -2034,8 +2083,8 @@
                 if (isTopCard) {
                     card.faceDown = false;
                     saveMove({ type: 'flip', col, index });
-                    checkTutorialProgress('flip', col, index);
                     render();
+                    updateTutorialAfterMove();
                     setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                 }
                 return;
@@ -2044,13 +2093,9 @@
             if (oneTapMove) {
                 const validMove = findValidMove(card, isTopCard);
                 if (validMove) {
-                    if (validMove.type === 'foundation') {
-                        checkTutorialProgress('foundation', col, index, null, validMove.index);
-                    } else {
-                        checkTutorialProgress('tableau', col, index, validMove.index, null);
-                    }
                     executeMove(col, index, validMove);
                     render();
+                    updateTutorialAfterMove();
                     setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                 }
                 return;
@@ -2061,9 +2106,9 @@
                     const top = foundations[f][foundations[f].length - 1];
                     const isValid = !top ? (card.value === 'A' && card.suitIndex === f) : (card.suit === top.suit && card.valueNum === top.valueNum + 1);
                     if (isValid && isTopCard) {
-                        checkTutorialProgress('foundation', col, index, null, f);
                         executeMove(col, index, { type: 'foundation', index: f });
                         render();
+                        updateTutorialAfterMove();
                         setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                         return;
                     }
@@ -2076,9 +2121,9 @@
 
                     const isValid = !targetTop ? (card.value === 'K') : (card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1);
                     if (isValid) {
-                        checkTutorialProgress('tableau', col, index, targetCol, null);
                         executeMove(col, index, { type: 'tableau', index: targetCol });
                         render();
+                        updateTutorialAfterMove();
                         setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                         return;
                     }
@@ -2107,13 +2152,13 @@
             const isValid = !top ? (card.value === 'A' && card.suitIndex === fIndex) : (card.suit === top.suit && card.valueNum === top.valueNum + 1);
 
             if (isValid) {
-                checkTutorialProgress('foundation', selected.col, selected.index, null, fIndex);
                 foundations[fIndex].push(card);
                 tableau[selected.col].splice(selected.index, 1);
                 saveMove({ type: 'foundation', fromCol: selected.col, fromFoundation: fIndex, card: card });
                 selected = null;
                 checkGameState();
                 render();
+                updateTutorialAfterMove();
                 setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                 return;
             }
@@ -2145,7 +2190,6 @@
             const isValid = !targetTop ? (card.value === 'K') : (card.suit === targetTop.suit && targetTop.valueNum === card.valueNum + 1);
 
             if (isValid) {
-                checkTutorialProgress('tableau', selected.col, selected.index, targetCol, null);
                 const cards = tableau[selected.col].splice(selected.index);
                 const wasFaceDown = cards.map(c => c.faceDown);
                 saveMove({ type: 'tableau', fromCol: selected.col, toCol: targetCol, cardCount: cards.length, cards: cards, wasFaceDown: wasFaceDown });
@@ -2155,7 +2199,10 @@
 
             selected = null;
             render();
-            if (didMove) setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+            if (didMove) {
+                updateTutorialAfterMove();
+                setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+            }
         }
 
         // Drag and drop functions
@@ -2319,20 +2366,20 @@
                 const sourceCardEl = document.querySelectorAll('.column')[fromCol].querySelectorAll('.card')[fromIndex];
                 const targetEl = document.querySelectorAll('.foundation')[target.index];
 
-                checkTutorialProgress('foundation', fromCol, fromIndex, null, target.index);
                 animateCardToTarget(sourceCardEl, targetEl, () => {
                     executeMove(fromCol, fromIndex, target);
                     render();
+                    updateTutorialAfterMove();
                     setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                 });
             } else {
                 // Tableau to tableau - instant move
-                checkTutorialProgress('tableau', fromCol, fromIndex, target.index, null);
                 const cards = tableau[fromCol].splice(fromIndex);
                 const wasFaceDown = cards.map(c => c.faceDown);
                 saveMove({ type: 'tableau', fromCol: fromCol, toCol: target.index, cardCount: cards.length, cards: cards, wasFaceDown: wasFaceDown });
                 tableau[target.index].push(...cards);
                 render();
+                updateTutorialAfterMove();
                 setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
             }
         }
