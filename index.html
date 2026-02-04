@@ -959,52 +959,43 @@
             },
             {
                 title: "Flip Face-Down Cards",
-                text: "When a face-down card is on top of a column, tap it to flip it face-up. Try flipping the highlighted card now!",
-                action: "flip",
-                highlightCol: 1,
-                highlightTop: true
+                text: "When a face-down card is on top of a column, tap it to flip it face-up. Use the Hint button (💡) to find a face-down card to flip!",
+                action: "info",
+                nextButton: true
             },
             {
                 title: "Move Aces to Foundation",
-                text: "Aces start each foundation pile. Drag the Ace to the foundation, OR tap it twice, OR tap it then tap the foundation above.",
-                action: "ace",
-                highlightCol: 0,
-                highlightTop: true,
-                targetFoundation: 0
+                text: "Aces start each foundation pile. Find an Ace and move it to its matching foundation at the top. Drag it, double-tap it, or tap then tap the foundation.",
+                action: "info",
+                nextButton: true
             },
             {
                 title: "Build on Foundations",
-                text: "After an Ace, add cards of the SAME SUIT in ascending order (2, 3, 4...). Move the 2 of Spades to the foundation using any method!",
-                action: "foundation",
-                highlightCol: 1,
-                highlightTop: true,
-                targetFoundation: 0
+                text: "After placing an Ace, add cards of the SAME SUIT in ascending order (A, 2, 3, 4...). Each foundation builds one suit from Ace to King.",
+                action: "info",
+                nextButton: true
             },
             {
                 title: "Move Cards Between Columns",
-                text: "In the tableau, move cards onto another card of the SAME SUIT that is exactly ONE VALUE HIGHER. Drag, double-tap, or tap-tap to move the 4 onto the 5!",
-                action: "tableau",
-                highlightCol: 2,
-                highlightTop: true,
-                targetCol: 3
+                text: "In the tableau, move a card onto another card of the SAME SUIT that is exactly ONE VALUE HIGHER. Example: 5♠ can go on 6♠.",
+                action: "info",
+                nextButton: true
             },
             {
                 title: "Moving Stacks",
-                text: "When you move a card, ALL cards on top of it move together as a stack. This is key to uncovering hidden cards!",
+                text: "When you move a card, ALL cards on top of it move together as a stack. This is key to uncovering hidden cards beneath!",
                 action: "info",
                 nextButton: true
             },
             {
                 title: "Kings to Empty Columns",
-                text: "Only Kings can be moved to empty columns. This creates space to reorganize your cards. Move the King to the empty column!",
-                action: "king",
-                highlightCol: 4,
-                highlightTop: true,
-                targetCol: 0
+                text: "Only Kings can be moved to empty columns. Creating empty columns gives you space to reorganize your cards.",
+                action: "info",
+                nextButton: true
             },
             {
-                title: "Keep Playing!",
-                text: "Continue moving cards to build the foundations. This hand is winnable! Use the Hint button if stuck. Press 'Skip Tutorial' to start a regular game.",
+                title: "Now Try It!",
+                text: "This hand has a high chance of winning. Use the Hint button (💡) when stuck. Try to move all cards to the foundations. Good luck!",
                 action: "freeplay",
                 nextButton: true
             }
@@ -1467,38 +1458,144 @@
             gameStartTime = Date.now();
             gameEnded = false;
 
-            // Create a simple, winnable tutorial hand
-            // Column 0: A♠ (spades)
-            tableau[0] = [createCard('\u2660', 'A')];
+            // Deal a full 52-card deck with high win probability
+            const deck = createFavorableDeck();
 
-            // Column 1: face-down card, then 2♠
-            const card1 = createCard('\u2660', '2');
-            card1.faceDown = true;
-            tableau[1] = [card1];
+            const totals = [1, 6, 7, 8, 9, 10, 11];
+            const faceUps = [1, 5, 5, 5, 5, 5, 5];
+            let cardIndex = 0;
 
-            // Column 2: 4♠ (will move to 5♠)
-            tableau[2] = [createCard('\u2660', '4')];
+            for (let col = 0; col < 7; col++) {
+                const total = totals[col];
+                const faceUpCount = faceUps[col];
+                const faceDownCount = total - faceUpCount;
 
-            // Column 3: 5♠, 3♠
-            tableau[3] = [createCard('\u2660', '5'), createCard('\u2660', '3')];
-
-            // Column 4: K♥ (king to move to empty)
-            tableau[4] = [createCard('\u2665', 'K')];
-
-            // Column 5: empty (for king)
-            tableau[5] = [];
-
-            // Column 6: 6♠, A♥, 2♥, 3♥
-            tableau[6] = [
-                createCard('\u2660', '6'),
-                createCard('\u2665', 'A'),
-                createCard('\u2665', '2'),
-                createCard('\u2665', '3')
-            ];
+                for (let i = 0; i < total; i++) {
+                    let card = deck[cardIndex++];
+                    card.faceDown = (i < faceDownCount);
+                    tableau[col].push(card);
+                }
+            }
 
             hideGameOver();
             render();
             showTutorialStep();
+        }
+
+        function createFavorableDeck() {
+            // Create all cards organized by suit
+            let cardsBySuit = [[], [], [], []]; // spades, hearts, diamonds, clubs
+
+            for (let s = 0; s < 4; s++) {
+                for (let v = 0; v < 13; v++) {
+                    cardsBySuit[s].push({
+                        suit: suitChars[s],
+                        suitIndex: s,
+                        value: values[v],
+                        valueNum: v + 1,
+                        color: (s === 1 || s === 2) ? 'red' : 'black'
+                    });
+                }
+            }
+
+            // Extract aces and low cards (2-4) for favorable placement
+            let aces = [];
+            let lowCards = []; // 2s, 3s, 4s
+            let midCards = []; // 5-9
+            let highCards = []; // 10-K
+
+            for (let s = 0; s < 4; s++) {
+                aces.push(cardsBySuit[s][0]); // Ace
+                for (let v = 1; v <= 3; v++) lowCards.push(cardsBySuit[s][v]); // 2-4
+                for (let v = 4; v <= 8; v++) midCards.push(cardsBySuit[s][v]); // 5-9
+                for (let v = 9; v <= 12; v++) highCards.push(cardsBySuit[s][v]); // 10-K
+            }
+
+            // Shuffle each group
+            shuffle(aces);
+            shuffle(lowCards);
+            shuffle(midCards);
+            shuffle(highCards);
+
+            // Build a favorable deck layout:
+            // Face-down positions (26 cards): mostly high and mid cards
+            // Face-up positions (26 cards): aces, low cards, and remaining cards
+
+            // Face-down cards (positions 0 in cols 1-6, positions 0-1 in col 2, etc.)
+            // Total face-down: 0+1+2+3+4+5+6 = 21 wait no...
+            // Col 0: 0 face-down, Col 1: 1, Col 2: 2, Col 3: 3, Col 4: 4, Col 5: 5, Col 6: 6
+            // Total face-down = 1+2+3+4+5+6 = 21
+
+            let faceDownPool = [...highCards, ...midCards.slice(0, 9)]; // 16 + 9 = 25, need 21
+            shuffle(faceDownPool);
+            faceDownPool = faceDownPool.slice(0, 21);
+
+            // Face-up cards: aces first, then low cards, then remaining mid cards
+            let remainingMid = midCards.slice(9);
+            let faceUpPool = [...aces, ...lowCards, ...remainingMid];
+
+            // Add any high cards not used in face-down
+            let usedHighCards = new Set(faceDownPool.filter(c => c.valueNum >= 10).map(c => c.suit + c.value));
+            let remainingHigh = highCards.filter(c => !usedHighCards.has(c.suit + c.value));
+            faceUpPool.push(...remainingHigh);
+
+            // Shuffle face-up pool but keep aces near the front (more likely to be accessible)
+            let acesInPool = faceUpPool.filter(c => c.value === 'A');
+            let nonAces = faceUpPool.filter(c => c.value !== 'A');
+            shuffle(nonAces);
+
+            // Interleave aces into first half of non-aces
+            faceUpPool = [];
+            let aceIndex = 0;
+            for (let i = 0; i < nonAces.length; i++) {
+                if (aceIndex < acesInPool.length && (i === 0 || i === 3 || i === 7 || i === 12)) {
+                    faceUpPool.push(acesInPool[aceIndex++]);
+                }
+                faceUpPool.push(nonAces[i]);
+            }
+            // Add any remaining aces
+            while (aceIndex < acesInPool.length) {
+                faceUpPool.push(acesInPool[aceIndex++]);
+            }
+
+            // Now build the deck in deal order
+            // Column 0: 1 card (face-up)
+            // Column 1: 1 face-down, 5 face-up
+            // Column 2: 2 face-down, 5 face-up
+            // etc.
+
+            let deck = [];
+            let faceDownIndex = 0;
+            let faceUpIndex = 0;
+
+            const totals = [1, 6, 7, 8, 9, 10, 11];
+            const faceDownCounts = [0, 1, 2, 3, 4, 5, 6];
+
+            for (let col = 0; col < 7; col++) {
+                // Add face-down cards for this column
+                for (let i = 0; i < faceDownCounts[col]; i++) {
+                    if (faceDownIndex < faceDownPool.length) {
+                        deck.push(faceDownPool[faceDownIndex++]);
+                    }
+                }
+                // Add face-up cards for this column
+                let faceUpCount = totals[col] - faceDownCounts[col];
+                for (let i = 0; i < faceUpCount; i++) {
+                    if (faceUpIndex < faceUpPool.length) {
+                        deck.push(faceUpPool[faceUpIndex++]);
+                    }
+                }
+            }
+
+            return deck;
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
         }
 
         function showTutorialStep() {
@@ -1595,37 +1692,9 @@
         }
 
         function checkTutorialProgress(action, col, index, targetCol, targetFoundation) {
-            if (!tutorialMode) return false;
-
-            const step = tutorialSteps[tutorialStep];
-            if (!step) return false;
-
-            let correctMove = false;
-
-            switch (step.action) {
-                case 'flip':
-                    correctMove = action === 'flip' && col === step.highlightCol;
-                    break;
-                case 'ace':
-                case 'foundation':
-                    correctMove = action === 'foundation' && col === step.highlightCol;
-                    break;
-                case 'tableau':
-                case 'king':
-                    correctMove = action === 'tableau' && col === step.highlightCol && targetCol === step.targetCol;
-                    break;
-                case 'freeplay':
-                    // In freeplay mode, any valid move counts
-                    correctMove = false;
-                    break;
-            }
-
-            if (correctMove) {
-                tutorialStep++;
-                setTimeout(() => showTutorialStep(), 500);
-            }
-
-            return correctMove;
+            // Tutorial is now informational - user clicks Next to progress
+            // This function is kept for compatibility but doesn't auto-advance
+            return false;
         }
 
         function findValidMoves() {
@@ -1830,7 +1899,7 @@
                     saveMove({ type: 'flip', col, index });
                     checkTutorialProgress('flip', col, index);
                     render();
-                    if (!tutorialMode) setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                    setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                 }
                 return;
             }
@@ -1845,7 +1914,7 @@
                     }
                     executeMove(col, index, validMove);
                     render();
-                    if (!tutorialMode) setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                    setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                 }
                 return;
             }
@@ -1858,7 +1927,7 @@
                         checkTutorialProgress('foundation', col, index, null, f);
                         executeMove(col, index, { type: 'foundation', index: f });
                         render();
-                        if (!tutorialMode) setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                        setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                         return;
                     }
                 }
@@ -1873,7 +1942,7 @@
                         checkTutorialProgress('tableau', col, index, targetCol, null);
                         executeMove(col, index, { type: 'tableau', index: targetCol });
                         render();
-                        if (!tutorialMode) setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                        setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                         return;
                     }
                 }
@@ -1908,7 +1977,7 @@
                 selected = null;
                 checkGameState();
                 render();
-                if (!tutorialMode) setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                 return;
             }
 
@@ -1949,7 +2018,7 @@
 
             selected = null;
             render();
-            if (didMove && !tutorialMode) setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+            if (didMove) setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
         }
 
         // Drag and drop functions
@@ -2117,7 +2186,7 @@
                 animateCardToTarget(sourceCardEl, targetEl, () => {
                     executeMove(fromCol, fromIndex, target);
                     render();
-                    if (!tutorialMode) setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                    setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
                 });
             } else {
                 // Tableau to tableau - instant move
@@ -2127,7 +2196,7 @@
                 saveMove({ type: 'tableau', fromCol: fromCol, toCol: target.index, cardCount: cards.length, cards: cards, wasFaceDown: wasFaceDown });
                 tableau[target.index].push(...cards);
                 render();
-                if (!tutorialMode) setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
+                setTimeout(() => tryAutoMoveToFoundationAnimated(), 100);
             }
         }
 
