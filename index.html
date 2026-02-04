@@ -1383,6 +1383,11 @@
 
         // Game state persistence
         function saveGameState() {
+            // Don't save tutorial games - they should not persist across refreshes
+            if (tutorialMode) {
+                clearGameState();
+                return;
+            }
             if (gameEnded) {
                 clearGameState();
                 return;
@@ -1393,8 +1398,6 @@
                 moveHistory: moveHistory,
                 moveCount: moveCount,
                 gameStartTime: gameStartTime,
-                tutorialMode: tutorialMode,
-                tutorialStep: tutorialStep,
                 score: calculateScore(),
                 savedAt: Date.now()
             };
@@ -1417,6 +1420,11 @@
 
         function hasSavedGame() {
             const state = loadGameState();
+            // Don't restore tutorial games
+            if (state && state.tutorialMode) {
+                clearGameState();
+                return false;
+            }
             return state !== null && state.tableau && state.foundations;
         }
 
@@ -1430,7 +1438,8 @@
 
         function resumeGame() {
             const state = loadGameState();
-            if (!state) {
+            if (!state || state.tutorialMode) {
+                // Don't restore tutorial games
                 hideResumeBanner();
                 newGame();
                 return;
@@ -1441,16 +1450,9 @@
             moveHistory = state.moveHistory || [];
             moveCount = state.moveCount || 0;
             gameStartTime = state.gameStartTime || Date.now();
-            tutorialMode = state.tutorialMode || false;
-            tutorialStep = state.tutorialStep || 0;
             gameEnded = false;
             selected = null;
             hintActive = false;
-
-            if (tutorialMode) {
-                document.body.classList.add('tutorial-active');
-                updateTutorialUI();
-            }
 
             hideResumeBanner();
             render();
@@ -3565,15 +3567,16 @@
             showResumeBanner();
             // Load the game state preview while showing banner
             const state = loadGameState();
-            if (state) {
+            if (state && !state.tutorialMode) {
                 tableau = state.tableau;
                 foundations = state.foundations;
                 moveHistory = state.moveHistory || [];
                 moveCount = state.moveCount || 0;
                 gameStartTime = state.gameStartTime || Date.now();
-                tutorialMode = state.tutorialMode || false;
                 gameEnded = false;
                 render();
+            } else {
+                newGame();
             }
         } else {
             newGame();
